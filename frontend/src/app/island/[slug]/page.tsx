@@ -1,12 +1,20 @@
 "use client";
 
 import { use } from "react";
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import confetti from "canvas-confetti";
 import { ArrowLeft, ArrowRight, Volume2, X } from "lucide-react";
 import { getIsland, ISLANDS } from "@/data/islands";
-import { checkViaApi, sttRecognize, translateViaApi, ttsSpeak } from "@/lib/api";
+import {
+  checkViaApi,
+  saveProgressApi,
+  sttRecognize,
+  translateViaApi,
+  ttsSpeak,
+} from "@/lib/api";
+import { useTelegram } from "@/providers/telegram-provider";
 import { useProgress, XP_PER_LESSON } from "@/store/use-progress";
 import { IslandIcon } from "@/components/island-icon";
 import { TaskNumbers } from "@/components/task-numbers";
@@ -25,6 +33,17 @@ type SR = {
   start: () => void;
   stop: () => void;
 };
+
+function seededRand(seed: number): () => number {
+  let a = seed;
+  return () => {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
 
 function createRecognizer(): SR | null {
   try {
@@ -61,6 +80,8 @@ export default function IslandPage({
   const [heard, setHeard] = useState("");
   const [liveTt, setLiveTt] = useState<string | null>(null);
   const [translating, setTranslating] = useState(false);
+  const [wrongPick, setWrongPick] = useState<string | null>(null);
+  const { initDataRaw } = useTelegram();
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -87,13 +108,60 @@ export default function IslandPage({
     markDone(step);
     if (step + 1 >= words.length) {
       completeLesson(lesson.id);
+      void saveProgressApi(slug, lesson.id, initDataRaw);
       setPhase("finished");
     } else {
       setStep(step + 1);
       setPhase("task");
       setShowRu(false);
       setLiveTt(null);
+      setWrongPick(null);
       setHeard("");
+    }
+  }
+
+  // Конфетти на финише (с уважением к reduced-motion).
+  useEffect(() => {
+    if (phase !== "finished") return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    void confetti({
+      particleCount: 130,
+      spread: 75,
+      origin: { y: 0.3 },
+      colors: ["#f5c044", "#34d399", "#ffffff"],
+    });
+  }, [phase]);
+
+  // Тип задания: чётные шаги — произношение, нечётные — квиз.
+  const taskType = step % 2 === 0 ? "repeat" : "quiz";
+
+  // Варианты квиза: правильный + 3 отвлекающих, порядок стабилен (SSR-safe).
+  const quizOptions = useMemo(() => {
+    const idx = Math.min(step, words.length - 1);
+    const others = words.filter((_, i) => i !== idx);
+    const pool = [...others];
+    for (const l of island.lessons) {
+      for (const w of l.words) {
+        if (pool.length >= 3) break;
+        if (w.tt !== words[idx].tt && !pool.some((p) => p.tt === w.tt)) pool.push(w);
+      }
+    }
+    const opts = [words[idx], ...pool.slice(0, 3)];
+    const rand = seededRand(step * 97 + 13);
+    for (let i = opts.length - 1; i > 0; i--) {
+      const j = Math.floor(rand() * (i + 1));
+      [opts[i], opts[j]] = [opts[j], opts[i]];
+    }
+    return opts;
+  }, [island, words, step]);
+
+  function pickOption(tt: string) {
+    if (tt === word.tt) {
+      setWrongPick(null);
+      setShowRu(true);
+      setPhase("success");
+    } else {
+      setWrongPick(tt);
     }
   }
 
@@ -102,6 +170,7 @@ export default function IslandPage({
     setHeard("");
     setShowRu(false);
     setLiveTt(null);
+    setWrongPick(null);
     setPhase(doneSteps[i] ? "success" : "task");
   }
 
@@ -223,7 +292,10 @@ export default function IslandPage({
         </span>
         <h1 className="text-2xl font-bold">Остров пройден!</h1>
         <p className="text-[#9db8a8]">
-          {lesson.title} · +{XP_PER_LESSON} XP. {island.guide} гордится тобой.
+          {lesson.title} · {island.guide} гордится тобой.
+        </p>
+        <p className="rounded-full bg-[#f5c044]/15 px-4 py-1.5 font-bold text-[#f5c044]">
+          +{XP_PER_LESSON} XP
         </p>
         <Link
           href="/"
@@ -324,7 +396,37 @@ export default function IslandPage({
         </section>
 
         {/* 5–7. Задание / кнопки / фидбек */}
-        {phase === "task" && (
+        {phase === "task" && taskType === "quiz" && (
+          <>
+            <section className="rounded-2xl border border-[#1c4d3a] bg-[#0a2e23]/80 p-4 text-center">
+              <p className="font-semibold">Выбери перевод:</p>
+              <button
+                onClick={() => speak(word.tt)}
+                className="pt-1 text-2xl font-bold text-[#f5c044]"
+                aria-label="Прослушать слово"
+              >
+                «{word.tt}»
+              </button>
+            </section>
+            <div className="grid grid-cols-1 gap-2">
+              {quizOptions.map((o) => (
+                <button
+                  key={o.tt}
+                  onClick={() => pickOption(o.tt)}
+                  className={
+                    o.tt === wrongPick
+                      ? "h-12 rounded-xl border border-red-400/60 bg-red-500/10 text-sm line-through opacity-70"
+                      : "h-12 rounded-xl border border-[#1c4d3a] bg-[#0a2e23]/80 text-sm hover:border-[#34d399]"
+                  }
+                >
+                  {o.ru}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
+        {phase === "task" && taskType === "repeat" && (
           <>
             <section className="rounded-2xl border border-[#1c4d3a] bg-[#0a2e23]/80 p-4 text-center">
               <p className="font-semibold">Скажи по-татарски:</p>

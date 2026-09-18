@@ -94,3 +94,32 @@ export async function checkViaApi(expected: string, heard: string): Promise<bool
 export function apiConfigured(): boolean {
   return API_URL !== "";
 }
+
+/** Сохранение прогресса на бэкенд (fire-and-forget, тихо). */
+export async function saveProgressApi(
+  islandSlug: string,
+  lessonId: string,
+  initData?: string,
+): Promise<void> {
+  try {
+    if (!API_URL) return;
+    await fetch(`${API_URL}/api/progress`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(initData ? { "X-Telegram-Init-Data": initData } : {}),
+      },
+      body: JSON.stringify({ island_slug: islandSlug, lesson_id: lessonId }),
+    });
+  } catch {
+    /* офлайн — прогресс живёт локально */
+  }
+}
+
+/** Вопрос Ярдәмче: сначала бэкенд, иначе исключение (фолбэк у вызывающего). */
+export async function assistantChatApi(message: string): Promise<string> {
+  const res = await post("/api/assistant/chat", { message });
+  const data = (await res.json()) as { reply: string };
+  if (!data.reply) throw new Error("empty reply");
+  return data.reply;
+}

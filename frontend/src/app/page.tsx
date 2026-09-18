@@ -1,18 +1,35 @@
 "use client";
 
 import Link from "next/link";
+import { useMemo } from "react";
 import { motion } from "framer-motion";
-import { Settings } from "lucide-react";
+import { Flame, Settings, Volume2, Zap } from "lucide-react";
 import { ISLANDS, islandProgress, islandStatus } from "@/data/islands";
+import { ttsSpeak } from "@/lib/api";
 import { useTelegram } from "@/providers/telegram-provider";
-import { useProgress } from "@/store/use-progress";
+import { levelOf, useProgress } from "@/store/use-progress";
 import { IslandCard } from "@/components/island-card";
 import { Progress } from "@/components/ui/progress";
 
 export default function Home() {
   const completedLessons = useProgress((s) => s.completedLessons);
+  const xp = useProgress((s) => s.xp);
+  const streak = useProgress((s) => s.streak);
   const { user } = useTelegram();
   const displayName = user?.first_name ?? "Айгуль";
+  const { title: levelTitle } = levelOf(xp);
+
+  // Слово дня: детерминировано датой, одинаково на сервере и клиенте.
+  const wordOfDay = useMemo(() => {
+    const all: { tt: string; ru: string; island: string }[] = [];
+    for (const isl of ISLANDS) {
+      for (const l of isl.lessons) {
+        for (const w of l.words) all.push({ tt: w.tt, ru: w.ru, island: isl.title });
+      }
+    }
+    const day = Math.floor(Date.now() / 86400000);
+    return all[day % all.length];
+  }, []);
 
   const doneIslands = ISLANDS.filter(
     (_, i) => islandStatus(i, completedLessons) === "done",
@@ -34,9 +51,25 @@ export default function Home() {
         <div className="flex-1">
           <p className="font-semibold">{displayName}</p>
           <p className="text-sm text-[#9db8a8]">
-            {doneIslands}/{ISLANDS.length} островов
+            {doneIslands}/{ISLANDS.length} островов · {levelTitle}
           </p>
         </div>
+        {streak > 0 && (
+          <span
+            className="inline-flex items-center gap-1 rounded-full bg-orange-500/15 px-2.5 py-1 text-xs font-bold text-orange-300"
+            title="Дней подряд"
+          >
+            <Flame className="size-3.5" aria-hidden />
+            {streak}
+          </span>
+        )}
+        <span
+          className="inline-flex items-center gap-1 rounded-full bg-[#f5c044]/15 px-2.5 py-1 text-xs font-bold text-[#f5c044]"
+          title="Очки опыта"
+        >
+          <Zap className="size-3.5" aria-hidden />
+          {xp}
+        </span>
         <Link
           href="/profile"
           aria-label="Настройки профиля"
@@ -56,6 +89,24 @@ export default function Home() {
           max={totalLessons}
           className="mt-2 h-2.5 [&>div]:bg-gradient-to-r [&>div]:from-[#34d399] [&>div]:to-[#f5c044]"
         />
+      </section>
+
+      {/* Слово дня */}
+      <section className="flex items-center gap-3 rounded-2xl border border-[#f5c044]/40 bg-gradient-to-r from-[#f5c044]/10 to-transparent p-4">
+        <div className="flex-1">
+          <p className="text-xs tracking-wide text-[#f5c044] uppercase">
+            Сүз · слово дня · {wordOfDay.island}
+          </p>
+          <p className="pt-0.5 text-lg font-bold">{wordOfDay.tt}</p>
+          <p className="text-sm text-[#9db8a8]">{wordOfDay.ru}</p>
+        </div>
+        <button
+          onClick={() => void ttsSpeak(wordOfDay.tt)}
+          aria-label={`Озвучить: ${wordOfDay.tt}`}
+          className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#f5c044] text-[#04150f]"
+        >
+          <Volume2 className="size-5" aria-hidden />
+        </button>
       </section>
 
       {/* 3. Сетка островов */}

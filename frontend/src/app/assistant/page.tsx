@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Bot, Send } from "lucide-react";
+import { apiConfigured, assistantChatApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 interface Message {
@@ -42,20 +43,29 @@ export default function AssistantPage() {
     },
   ]);
   const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const online = apiConfigured();
 
-  function send(text: string) {
+  async function send(text: string) {
     const question = text.trim();
-    if (!question) return;
+    if (!question || loading) return;
     setInput("");
-    setMessages((m) => [
-      ...m,
-      { role: "user", text: question },
-      { role: "assistant", text: localReply(question) },
-    ]);
-    requestAnimationFrame(() =>
-      bottomRef.current?.scrollIntoView({ behavior: "smooth" }),
-    );
+    setMessages((m) => [...m, { role: "user", text: question }]);
+    setLoading(true);
+    try {
+      const reply = online
+        ? await assistantChatApi(question)
+        : localReply(question);
+      setMessages((m) => [...m, { role: "assistant", text: reply }]);
+    } catch {
+      setMessages((m) => [...m, { role: "assistant", text: localReply(question) }]);
+    } finally {
+      setLoading(false);
+      requestAnimationFrame(() =>
+        bottomRef.current?.scrollIntoView({ behavior: "smooth" }),
+      );
+    }
   }
 
   return (
@@ -73,7 +83,9 @@ export default function AssistantPage() {
         </span>
         <div>
           <h1 className="text-xl font-bold">Ярдәмче</h1>
-          <p className="text-xs text-[#9db8a8]">офлайн-режим · без сервера</p>
+          <p className="text-xs text-[#9db8a8]">
+            {online ? "онлайн · Tatsoft + LLM" : "офлайн-режим · без сервера"}
+          </p>
         </div>
       </div>
 
@@ -91,6 +103,11 @@ export default function AssistantPage() {
             {m.text}
           </div>
         ))}
+        {loading && (
+          <div className="max-w-[85%] self-start rounded-2xl border border-[#1c4d3a] bg-[#0a2e23]/80 px-4 py-3 text-sm text-[#9db8a8]">
+            Ярдәмче яза…
+          </div>
+        )}
         <div ref={bottomRef} />
       </div>
 
@@ -122,7 +139,8 @@ export default function AssistantPage() {
         <button
           type="submit"
           aria-label="Отправить"
-          className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#0e9f6e] text-white"
+          disabled={loading}
+          className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#0e9f6e] text-white disabled:opacity-50"
         >
           <Send className="size-4" aria-hidden />
         </button>
