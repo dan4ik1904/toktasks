@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { TelegramProvider } from "@/components/telegram-provider";
+import { TelegramProvider } from "@/providers/telegram-provider";
 import { TabBar } from "@/components/tab-bar";
 
 export const metadata: Metadata = {

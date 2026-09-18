@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Check, Lock, LockOpen, Settings } from "lucide-react";
 import { ISLANDS, islandProgress, islandStatus } from "@/data/islands";
+import { useTelegram } from "@/providers/telegram-provider";
 import { useProgress } from "@/store/use-progress";
 import { IslandIcon } from "@/components/island-icon";
 import { cn } from "@/lib/utils";
@@ -18,6 +19,8 @@ const ART = [
 
 export default function Home() {
   const completedLessons = useProgress((s) => s.completedLessons);
+  const { user } = useTelegram();
+  const displayName = user?.first_name ?? "Айгуль";
 
   const doneIslands = ISLANDS.filter(
     (_, i) => islandStatus(i, completedLessons) === "done",
@@ -31,10 +34,10 @@ export default function Home() {
       {/* Профиль */}
       <section className="flex items-center gap-3 rounded-2xl border border-[#1c4d3a] bg-[#0a2e23]/80 p-3">
         <span className="flex size-12 items-center justify-center rounded-full bg-gradient-to-br from-[#f5c044] to-[#0e9f6e] text-xl font-bold text-[#04150f]">
-          А
+          {displayName.slice(0, 1)}
         </span>
         <div className="flex-1">
-          <p className="font-semibold">Айгуль</p>
+          <p className="font-semibold">{displayName}</p>
           <p className="text-sm text-[#9db8a8]">
             {doneIslands}/{ISLANDS.length} островов
           </p>
