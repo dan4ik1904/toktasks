@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -17,9 +18,11 @@ import {
   viewport,
 } from "@telegram-apps/sdk-react";
 import type { User } from "@telegram-apps/types";
+import { registerApi } from "@/lib/api";
+import { useProgress } from "@/store/use-progress";
 
 /** Фон приложения — под него красим шапку и фон Mini App. */
-const APP_BG = "#04150f";
+const APP_BG = "#120e2b";
 
 export interface TelegramContextValue {
   /** Пользователь Telegram (undefined вне Telegram). */
@@ -81,10 +84,24 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
   const user = useSignal(initData.user);
   const initDataRaw = useSignal(initData.raw);
   const tgIsDark = useSignal(themeParams.isDark);
+  const applyServer = useProgress((s) => s.applyServer);
+  const registered = useRef(false);
 
   useEffect(() => {
     setIsInTelegram(initSdk());
   }, []);
+
+  // Регистрация по TG ID + гидратация профиля с сервера.
+  useEffect(() => {
+    if (registered.current) return;
+    registered.current = true;
+    const tgId = user?.id !== undefined ? String(user.id) : "demo";
+    void registerApi(tgId, user?.first_name ?? "", user?.username ?? "", initDataRaw).then(
+      (p) => {
+        if (p) applyServer(tgId, p);
+      },
+    );
+  }, [isInTelegram, user, initDataRaw, applyServer]);
 
   const value = useMemo<TelegramContextValue>(
     () => ({

@@ -8,13 +8,8 @@ from api import stt, translate, tts
 from assistant import ask_assistant, grade_pronunciation, probe_llm
 from auth import telegram_user
 from config import settings
-from island_logic import (
-    check_answer,
-    get_island,
-    get_progress,
-    islands_index,
-    save_progress,
-)
+from island_logic import check_answer, get_island, islands_index
+import db as store
 
 app = FastAPI(title="Татар.Уку API", version="0.3.0")
 
@@ -72,26 +67,64 @@ async def api_grade(req: GradeRequest) -> dict:
 
 @app.on_event("startup")
 async def _startup() -> None:
+    store.init_db()
     await probe_llm()
 
 
 class ProgressRequest(BaseModel):
     island_slug: str
     lesson_id: str
+    user_id: str = "demo"
+
+
+class RegisterRequest(BaseModel):
+    tg_id: str = "demo"
+    first_name: str = ""
+    username: str = ""
+
+
+def _uid(user: dict | None, fallback: str) -> str:
+    if user and user.get("id"):
+        return str(user["id"])
+    return fallback or "demo"
+
+
+@app.post("/api/register")
+def api_register(req: RegisterRequest, user: dict | None = Depends(telegram_user)) -> dict:
+    return store.register(_uid(user, req.tg_id), req.first_name, req.username)
+
+
+@app.get("/api/me")
+def api_me(user_id: str = "demo", user: dict | None = Depends(telegram_user)) -> dict:
+    return store.me(_uid(user, user_id))
+
+
+@app.get("/api/leaderboard")
+def api_leaderboard(limit: int = 20) -> list[dict]:
+    return store.leaderboard(max(1, min(limit, 50)))
 
 
 @app.post("/api/progress")
 def api_progress(req: ProgressRequest, user: dict | None = Depends(telegram_user)) -> dict:
-    user_id = str((user or {}).get("id", "demo"))
-    try:
-        return save_progress(user_id, req.island_slug, req.lesson_id)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
+    uid = _uid(user, req.user_id)
+    if get_island(req.island_slug) is None:
+        raise HTTPException(status_code=400, detail="unknown island")
+    return store.complete_lesson(uid, req.lesson_id)
 
 
 @app.get("/api/progress")
-def api_get_progress(user_id: str = "demo") -> dict:
-    return get_progress(user_id)
+def api_get_progress(user_id: str = "demo", user: dict | None = Depends(telegram_user)) -> dict:
+    return store.me(_uid(user, user_id))
+
+
+@app.post("/api/hearts/spend")
+def api_hearts_spend(user_id: str = "demo", user: dict | None = Depends(telegram_user)) -> dict:
+    return store.spend_heart(_uid(user, user_id))
+
+
+@app.post("/api/hearts/refill")
+def api_hearts_refill(user_id: str = "demo", user: dict | None = Depends(telegram_user)) -> dict:
+    return store.refill_hearts(_uid(user, user_id))
 
 
 class ChatRequest(BaseModel):

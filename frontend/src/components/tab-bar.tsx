@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, Map, User } from "lucide-react";
+import { BarChart3, Crown, Map, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const TABS = [
   { href: "/", label: "Острова", icon: Map },
+  { href: "/top", label: "Топ", icon: Crown },
   { href: "/progress", label: "Прогресс", icon: BarChart3 },
   { href: "/profile", label: "Профиль", icon: User },
 ];
@@ -14,8 +15,8 @@ const TABS = [
 export function TabBar() {
   const pathname = usePathname();
   return (
-    <nav className="fixed bottom-0 left-1/2 z-10 w-full max-w-md -translate-x-1/2 border-t border-[#1c4d3a] bg-[#04150f]/90 backdrop-blur">
-      <div className="grid grid-cols-3 px-4 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+    <nav className="fixed bottom-0 left-1/2 z-10 w-full max-w-md -translate-x-1/2 border-t border-[#3a3370] bg-[#120e2b]/90 backdrop-blur">
+      <div className="grid grid-cols-4 px-4 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         {TABS.map((t) => {
           const active =
             t.href === "/" ? pathname === "/" : pathname.startsWith(t.href);
@@ -25,11 +26,11 @@ export function TabBar() {
               href={t.href}
               className={cn(
                 "flex flex-col items-center gap-1 rounded-xl py-1.5 text-xs",
-                active ? "text-[#f5c044]" : "text-[#9db8a8]",
+                active ? "text-[#ffc800]" : "text-[#a7a2c9]",
               )}
             >
               <t.icon
-                className={cn("size-6", active && "drop-shadow-[0_0_8px_rgba(245,192,68,0.6)]")}
+                className={cn("size-6", active && "drop-shadow-[0_0_8px_rgba(255,200,0,0.6)]")}
                 aria-hidden
               />
               {t.label}

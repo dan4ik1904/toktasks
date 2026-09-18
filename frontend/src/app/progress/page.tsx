@@ -16,28 +16,28 @@ export default function ProgressPage() {
       <h1 className="text-2xl font-bold">Прогресс</h1>
 
       <section className="grid grid-cols-3 gap-2">
-        <div className="rounded-2xl border border-[#1c4d3a] bg-[#0a2e23]/80 p-3 text-center">
-          <Sparkles className="mx-auto size-5 text-[#f5c044]" aria-hidden />
+        <div className="rounded-2xl border border-[#3a3370] bg-[#1d1747]/80 p-3 text-center">
+          <Sparkles className="mx-auto size-5 text-[#ffc800]" aria-hidden />
           <p className="pt-1 text-xl font-bold tabular-nums">{xp}</p>
-          <p className="text-xs text-[#9db8a8]">XP</p>
+          <p className="text-xs text-[#a7a2c9]">XP</p>
         </div>
-        <div className="rounded-2xl border border-[#1c4d3a] bg-[#0a2e23]/80 p-3 text-center">
-          <Trophy className="mx-auto size-5 text-[#f5c044]" aria-hidden />
+        <div className="rounded-2xl border border-[#3a3370] bg-[#1d1747]/80 p-3 text-center">
+          <Trophy className="mx-auto size-5 text-[#ffc800]" aria-hidden />
           <p className="pt-1 text-xl font-bold tabular-nums">
             {completedLessons.length}/{totalLessons}
           </p>
-          <p className="text-xs text-[#9db8a8]">уроков</p>
+          <p className="text-xs text-[#a7a2c9]">уроков</p>
         </div>
-        <div className="rounded-2xl border border-[#1c4d3a] bg-[#0a2e23]/80 p-3 text-center">
-          <Flame className="mx-auto size-5 text-[#34d399]" aria-hidden />
+        <div className="rounded-2xl border border-[#3a3370] bg-[#1d1747]/80 p-3 text-center">
+          <Flame className="mx-auto size-5 text-[#58cc02]" aria-hidden />
           <p className="pt-1 text-xl font-bold tabular-nums">
             {Math.floor(xp / XP_PER_LESSON)}
           </p>
-          <p className="text-xs text-[#9db8a8]">наград</p>
+          <p className="text-xs text-[#a7a2c9]">наград</p>
         </div>
       </section>
 
-      <section className="rounded-2xl border border-[#1c4d3a] bg-[#0a2e23]/80 p-4">
+      <section className="rounded-2xl border border-[#3a3370] bg-[#1d1747]/80 p-4">
         <p className="text-sm">Всего пройдено: {overall}%</p>
         <div
           className="mt-2 h-2.5 overflow-hidden rounded-full bg-white/10"
@@ -47,7 +47,7 @@ export default function ProgressPage() {
           aria-valuenow={overall}
         >
           <div
-            className="h-full rounded-full bg-gradient-to-r from-[#34d399] to-[#f5c044]"
+            className="h-full rounded-full bg-gradient-to-r from-[#58cc02] to-[#ffc800]"
             style={{ width: `${overall}%` }}
           />
         </div>
@@ -59,21 +59,21 @@ export default function ProgressPage() {
           return (
             <div
               key={island.slug}
-              className="flex items-center gap-3 rounded-2xl border border-[#1c4d3a] bg-[#0a2e23]/80 p-3"
+              className="flex items-center gap-3 rounded-2xl border border-[#3a3370] bg-[#1d1747]/80 p-3"
             >
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white/5 text-[#f5c044]">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white/5 text-[#ffc800]">
                 <IslandIcon icon={island.icon} className="size-5" />
               </span>
               <div className="flex-1">
                 <p className="text-sm font-semibold">{island.title}</p>
                 <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/10">
                   <div
-                    className="h-full rounded-full bg-[#34d399]"
+                    className="h-full rounded-full bg-[#58cc02]"
                     style={{ width: `${p.pct}%` }}
                   />
                 </div>
               </div>
-              <span className="text-xs text-[#9db8a8] tabular-nums">
+              <span className="text-xs text-[#a7a2c9] tabular-nums">
                 {p.done}/{p.total}
               </span>
             </div>

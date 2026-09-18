@@ -78,12 +78,12 @@ export default function AssistantPage() {
         >
           <ArrowLeft className="size-5" aria-hidden />
         </Link>
-        <span className="flex size-11 items-center justify-center rounded-xl bg-[#0e9f6e] text-white">
+        <span className="flex size-11 items-center justify-center rounded-xl bg-[#7c5cff] text-white">
           <Bot className="size-6" aria-hidden />
         </span>
         <div>
           <h1 className="text-xl font-bold">Ярдәмче</h1>
-          <p className="text-xs text-[#9db8a8]">
+          <p className="text-xs text-[#a7a2c9]">
             {online ? "онлайн · Tatsoft + LLM" : "офлайн-режим · без сервера"}
           </p>
         </div>
@@ -96,15 +96,15 @@ export default function AssistantPage() {
             className={cn(
               "max-w-[85%] rounded-2xl px-4 py-3 text-sm whitespace-pre-wrap",
               m.role === "user"
-                ? "self-end bg-[#0e9f6e] text-white"
-                : "self-start border border-[#1c4d3a] bg-[#0a2e23]/80",
+                ? "self-end bg-[#7c5cff] text-white"
+                : "self-start border border-[#3a3370] bg-[#1d1747]/80",
             )}
           >
             {m.text}
           </div>
         ))}
         {loading && (
-          <div className="max-w-[85%] self-start rounded-2xl border border-[#1c4d3a] bg-[#0a2e23]/80 px-4 py-3 text-sm text-[#9db8a8]">
+          <div className="max-w-[85%] self-start rounded-2xl border border-[#3a3370] bg-[#1d1747]/80 px-4 py-3 text-sm text-[#a7a2c9]">
             Ярдәмче яза…
           </div>
         )}
@@ -116,7 +116,7 @@ export default function AssistantPage() {
           <button
             key={s}
             onClick={() => send(s)}
-            className="rounded-full border border-[#1c4d3a] px-3 py-1.5 text-xs text-[#9db8a8] hover:bg-white/5"
+            className="rounded-full border border-[#3a3370] px-3 py-1.5 text-xs text-[#a7a2c9] hover:bg-white/5"
           >
             {s}
           </button>
@@ -134,13 +134,13 @@ export default function AssistantPage() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Спроси по-татарски или по-русски…"
-          className="h-11 flex-1 rounded-xl border border-[#1c4d3a] bg-[#0a2e23]/80 px-4 text-sm outline-none placeholder:text-[#9db8a8] focus:border-[#34d399]"
+          className="h-11 flex-1 rounded-xl border border-[#3a3370] bg-[#1d1747]/80 px-4 text-sm outline-none placeholder:text-[#a7a2c9] focus:border-[#58cc02]"
         />
         <button
           type="submit"
           aria-label="Отправить"
           disabled={loading}
-          className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#0e9f6e] text-white disabled:opacity-50"
+          className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#7c5cff] text-white disabled:opacity-50"
         >
           <Send className="size-4" aria-hidden />
         </button>

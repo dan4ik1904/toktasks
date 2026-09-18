@@ -269,24 +269,117 @@ export function apiConfigured(): boolean {
   return API_URL !== "";
 }
 
-/** Сохранение прогресса на бэкенд (fire-and-forget, тихо). */
+/** Сохранение прогресса на бэкенд. Возвращает серверный профиль. */
+export interface ServerProfile {
+  tg_id: string;
+  xp: number;
+  streak: number;
+  hearts: number;
+  lessons: string[];
+}
+
+async function get(path: string): Promise<Response> {
+  if (!API_URL) throw new Error("no api url");
+  const res = await fetch(`${API_URL}${path}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res;
+}
+
 export async function saveProgressApi(
   islandSlug: string,
   lessonId: string,
   initData?: string,
-): Promise<void> {
+  userId = "demo",
+): Promise<ServerProfile | null> {
   try {
-    if (!API_URL) return;
-    await fetch(`${API_URL}/api/progress`, {
+    if (!API_URL) return null;
+    const res = await fetch(`${API_URL}/api/progress`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         ...(initData ? { "X-Telegram-Init-Data": initData } : {}),
       },
-      body: JSON.stringify({ island_slug: islandSlug, lesson_id: lessonId }),
+      body: JSON.stringify({ island_slug: islandSlug, lesson_id: lessonId, user_id: userId }),
     });
+    if (!res.ok) return null;
+    return (await res.json()) as ServerProfile;
   } catch {
     /* офлайн — прогресс живёт локально */
+    return null;
+  }
+}
+
+/** Регистрация по TG ID. Не бросает. */
+export async function registerApi(
+  tgId: string,
+  firstName = "",
+  username = "",
+  initData?: string,
+): Promise<ServerProfile | null> {
+  try {
+    if (!API_URL) return null;
+    const res = await fetch(`${API_URL}/api/register`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(initData ? { "X-Telegram-Init-Data": initData } : {}),
+      },
+      body: JSON.stringify({ tg_id: tgId, first_name: firstName, username }),
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as ServerProfile;
+  } catch {
+    return null;
+  }
+}
+
+export async function meApi(userId: string): Promise<ServerProfile | null> {
+  try {
+    return ((await get(`/api/me?user_id=${encodeURIComponent(userId)}`)).json() as Promise<ServerProfile>);
+  } catch {
+    return null;
+  }
+}
+
+export interface LeaderRow {
+  tg_id: string;
+  name: string;
+  xp: number;
+  streak: number;
+  lessons: number;
+}
+
+export async function leaderboardApi(): Promise<LeaderRow[]> {
+  try {
+    return ((await get("/api/leaderboard")).json() as Promise<LeaderRow[]>);
+  } catch {
+    return [];
+  }
+}
+
+export async function spendHeartApi(userId: string): Promise<number | null> {
+  try {
+    if (!API_URL) return null;
+    const res = await fetch(`${API_URL}/api/hearts/spend?user_id=${encodeURIComponent(userId)}`, {
+      method: "POST",
+    });
+    if (!res.ok) return null;
+    return ((await res.json()) as ServerProfile).hearts;
+  } catch {
+    return null;
+  }
+}
+
+export async function refillHeartsApi(userId: string): Promise<number | null> {
+  try {
+    if (!API_URL) return null;
+    const res = await fetch(`${API_URL}/api/hearts/refill?user_id=${encodeURIComponent(userId)}`, {
+      method: "POST",
+    });
+    if (!res.ok) return null;
+    return ((await res.json()) as ServerProfile).hearts;
+  } catch {
+    return null;
   }
 }
 

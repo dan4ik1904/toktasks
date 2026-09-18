@@ -1,17 +1,19 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #04150f;
-  --bg-soft: #07231b;
-  --surface: #0a2e23;
-  --surface-2: #0d3a2b;
-  --line: #1c4d3a;
-  --fg: #f2f7ef;
-  --muted: #9db8a8;
-  --gold: #f5c044;
-  --gold-deep: #b9821f;
-  --green: #34d399;
-  --green-deep: #0e9f6e;
+  --bg: #120e2b;
+  --bg-soft: #171239;
+  --surface: #1d1747;
+  --surface-2: #262058;
+  --line: #3a3370;
+  --fg: #f4f2ff;
+  --muted: #a7a2c9;
+  --gold: #ffc800;
+  --gold-deep: #c79400;
+  --green: #58cc02;
+  --green-deep: #46a302;
+  --violet: #7c5cff;
+  --blue: #1cb0f6;
   color-scheme: dark;
 }
 
@@ -24,8 +26,8 @@
 
 body {
   background:
-    radial-gradient(120% 60% at 50% -10%, #0e4432 0%, transparent 60%),
-    radial-gradient(100% 50% at 50% 110%, #0a3527 0%, transparent 55%),
+    radial-gradient(120% 60% at 50% -10%, #2a1e69 0%, transparent 60%),
+    radial-gradient(100% 50% at 50% 110%, #1b1445 0%, transparent 55%),
     var(--bg);
   color: var(--fg);
   min-height: 100dvh;
@@ -46,7 +48,7 @@ body {
   height: 320px;
   top: -110px;
   left: -90px;
-  background: rgba(14, 159, 110, 0.22);
+  background: rgba(124, 92, 255, 0.28);
   animation: drift-a 14s ease-in-out infinite alternate;
 }
 
@@ -55,7 +57,7 @@ body {
   height: 280px;
   top: 30%;
   right: -110px;
-  background: rgba(245, 192, 68, 0.13);
+  background: rgba(28, 176, 246, 0.16);
   animation: drift-b 18s ease-in-out infinite alternate;
 }
 
@@ -122,11 +124,11 @@ body {
 .spirit-ring {
   background: conic-gradient(
     from 200deg,
-    #f5c044,
-    #34d399,
-    #f5c044,
+    #ffc800,
+    #58cc02,
+    #ffc800,
     #b9821f,
-    #f5c044
+    #ffc800
   );
   box-shadow:
     0 0 40px rgba(245, 192, 68, 0.35),

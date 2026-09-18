@@ -46,15 +46,15 @@ export function TaskNumbers({
                 className={cn(
                   "flex size-10 items-center justify-center rounded-full border text-sm font-semibold transition-transform",
                   isDone
-                    ? "border-[#f5c044] bg-[#f5c044] text-[#04150f]"
+                    ? "border-[#ffc800] bg-[#ffc800] text-[#120e2b]"
                     : isCurrent
-                      ? "border-[#34d399] text-[#34d399]"
-                      : "border-white/20 text-[#9db8a8]",
+                      ? "border-[#58cc02] text-[#58cc02]"
+                      : "border-white/20 text-[#a7a2c9]",
                   clickable ? "cursor-pointer" : "cursor-default opacity-70",
                 )}
                 animate={
                   isCurrent
-                    ? { boxShadow: ["0 0 0px rgba(52,211,153,0.7)", "0 0 18px rgba(52,211,153,0.7)", "0 0 0px rgba(52,211,153,0.7)"] }
+                    ? { boxShadow: ["0 0 0px rgba(88,204,2,0.7)", "0 0 18px rgba(88,204,2,0.7)", "0 0 0px rgba(88,204,2,0.7)"] }
                     : { boxShadow: "0 0 0px rgba(0,0,0,0)" }
                 }
                 transition={

@@ -24,7 +24,7 @@ function EqBars({ side }: { side: "left" | "right" }) {
       {bars.map((h, i) => (
         <span
           key={i}
-          className="eq-bar w-1.5 rounded-full bg-gradient-to-t from-[#34d399] to-[#f5c044]"
+          className="eq-bar w-1.5 rounded-full bg-gradient-to-t from-[#58cc02] to-[#ffc800]"
           style={{ height: h, animationDelay: `${i * 0.15}s` }}
         />
       ))}
@@ -50,14 +50,14 @@ export function AIOrb({ icon, guide, active = false, className }: AIOrbProps) {
             active ? { repeat: Infinity, duration: 1.6, ease: "easeInOut" } : undefined
           }
         >
-          <div className="flex size-36 items-center justify-center rounded-full bg-[#07231b]">
-            <IslandIcon icon={icon} className="size-16 text-[#f5c044]" />
+          <div className="flex size-36 items-center justify-center rounded-full bg-[#171239]">
+            <IslandIcon icon={icon} className="size-16 text-[#ffc800]" />
           </div>
         </motion.div>
         <EqBars side="right" />
       </div>
       {guide && (
-        <p className="text-xs text-[#9db8a8]">{guide} · хранитель острова</p>
+        <p className="text-xs text-[#a7a2c9]">{guide} · хранитель острова</p>
       )}
     </div>
   );

@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     tatsoft_translate_base: str = "https://translate.tatar"
 
     progress_file: str = "data/progress.json"
+    db_file: str = "data/app.db"
 
 
 settings = Settings()

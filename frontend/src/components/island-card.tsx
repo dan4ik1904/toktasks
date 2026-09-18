@@ -64,7 +64,7 @@ export function IslandCard({
         )}
       >
         {/* Арт острова с покачиванием */}
-        <div className="flex h-28 items-center justify-center bg-gradient-to-b from-[#34d399]/20 via-[#0d3a2b] to-[#04150f]">
+        <div className="flex h-28 items-center justify-center bg-gradient-to-b from-[#58cc02]/20 via-[#0d3a2b] to-[#120e2b]">
           <div
             className={reduceMotion ? undefined : "float-slow"}
             style={{ animationDelay: `${(index % 6) * 0.7}s` }}
@@ -83,7 +83,7 @@ export function IslandCard({
 
         <div className="flex flex-1 flex-col gap-1 p-3">
           <h2 className="font-semibold">{island.title}</h2>
-          <p className="text-xs text-[#9db8a8]">{island.guide}</p>
+          <p className="text-xs text-[#a7a2c9]">{island.guide}</p>
 
           <Badge
             variant={status}
@@ -96,7 +96,7 @@ export function IslandCard({
 
           <div className="mt-auto flex items-center gap-2 pt-2">
             <Progress value={done} max={total} className="h-1.5 flex-1" />
-            <span className="text-[11px] text-[#9db8a8] tabular-nums">
+            <span className="text-[11px] text-[#a7a2c9] tabular-nums">
               {pct}%
             </span>
           </div>
