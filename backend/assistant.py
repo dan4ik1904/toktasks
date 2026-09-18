@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import httpx
 
-from .config import settings
+from config import settings
 
 SYSTEM_PROMPT = (
     "Син — Ярдәмче, татар телен өйрәнүдә ярдәмче. "

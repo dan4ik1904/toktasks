@@ -12,12 +12,14 @@ tatar-uku/
 ├── frontend/          # Next.js 16 + React 19 + TypeScript + Tailwind + shadcn/ui
 │   └── src/
 │       ├── app/           # App Router: / (карта), /island/[slug], /assistant
-│       ├── components/    # TelegramProvider, ui/* (shadcn-стиль)
+│       ├── components/    # TelegramProvider, IslandCard, TaskNumbers, AIOrb, ui/*
 │       ├── data/          # острова и словарь (islands.ts)
 │       └── store/         # Zustand: XP и пройденные уроки (persist)
-└── backend/           # FastAPI + aiogram 3.x
-    ├── app/           # API: /health, /api/islands, /api/assistant/chat
-    └── bot/           # Telegram-бот: /start с кнопкой WebApp
+└── backend/           # FastAPI (main.py) + aiogram 3.x (bot/)
+    ├── api/           # Tatsoft: stt.py, tts.py, translate.py
+    ├── island_logic.py# острова, проверка ответов, прогресс
+    ├── auth.py        # валидация Telegram initData
+    └── assistant.py   # Ярдәмче: LLM или офлайн-режим
 ```
 
 ## Быстрый старт
@@ -37,8 +39,8 @@ npm run dev                  # http://localhost:3000
 cd backend
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env         # заполни BOT_TOKEN, WEBAPP_URL
-uvicorn app.main:app --reload --port 8000
+cp .env.example .env         # заполни BOT_TOKEN, WEBAPP_URL, Tatsoft
+uvicorn main:app --reload --port 8000
 ```
 
 ### Telegram-бот
@@ -48,6 +50,14 @@ cd backend
 source .venv/bin/activate
 python -m bot.main
 ```
+
+## API
+
+- `GET /api/islands` — список островов, `GET /api/island/{slug}` — остров с уроками
+- `POST /api/check` — `{expected, heard}` → `{correct, distance}`
+- `POST /api/progress` — `{island_slug, lesson_id}` (+ заголовок `X-Telegram-Init-Data`)
+- `POST /api/stt` (аудио → текст), `POST /api/tts` (текст → аудио), `POST /api/translate`
+- Без `TATSOFT_*` в `.env`: STT/TTS отвечают 503, перевод — по словарю островов
 
 ## ИИ-помощник
 

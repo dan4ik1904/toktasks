@@ -22,7 +22,7 @@ from aiogram.types import (
     WebAppInfo,
 )
 
-from app.config import settings
+from config import settings
 
 dp = Dispatcher()
 
