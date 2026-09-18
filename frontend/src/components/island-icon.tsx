@@ -1,8 +1,12 @@
 import {
   Apple,
+  Building2,
+  Clock,
   Compass,
   Hash,
   Home,
+  Palette,
+  PawPrint,
   TreePine,
   Waves,
   type LucideIcon,
@@ -14,8 +18,12 @@ const ICONS: Record<Island["icon"], LucideIcon> = {
   hash: Hash,
   home: Home,
   apple: Apple,
+  paw: PawPrint,
+  building: Building2,
   tree: TreePine,
   compass: Compass,
+  palette: Palette,
+  clock: Clock,
 };
 
 export function IslandIcon({

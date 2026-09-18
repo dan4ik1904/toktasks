@@ -1,21 +1,21 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { TelegramProvider } from "@/components/telegram-provider";
-import { AppHeader } from "@/components/app-header";
+import { TabBar } from "@/components/tab-bar";
 
 export const metadata: Metadata = {
   title: "Татар.Уку — учим татарский островами",
   description:
-    "Telegram Web App для изучения татарского языка: острова тем, карточки слов и ИИ-помощник Ярдәмче.",
+    "Telegram Web App для изучения татарского языка: острова тем, духи-хранители и ИИ-помощник Ярдәмче.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="tt" className="h-full antialiased">
-      <body className="min-h-full flex flex-col">
+      <body className="mx-auto flex min-h-dvh w-full max-w-md flex-col">
         <TelegramProvider>
-          <AppHeader />
           <div className="flex flex-1 flex-col">{children}</div>
+          <TabBar />
         </TelegramProvider>
       </body>
     </html>

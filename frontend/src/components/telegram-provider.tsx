@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { init, miniApp, themeParams, viewport } from "@telegram-apps/sdk-react";
 
 function initTelegram() {
@@ -27,13 +27,9 @@ function initTelegram() {
 }
 
 export function TelegramProvider({ children }: { children: ReactNode }) {
-  const [ready, setReady] = useState(false);
-
   useEffect(() => {
     initTelegram();
-    setReady(true);
   }, []);
 
-  if (!ready) return null;
   return <>{children}</>;
 }

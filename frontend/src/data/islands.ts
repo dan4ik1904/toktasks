@@ -16,17 +16,20 @@ export interface Island {
   title: string;
   titleRu: string;
   description: string;
+  /** Дух-хранитель острова */
+  guide: string;
   level: "Башлангыч" | "Дәвам";
-  icon: "wave" | "hash" | "home" | "apple" | "tree" | "compass";
+  icon: "wave" | "hash" | "home" | "apple" | "paw" | "building" | "tree" | "compass" | "palette" | "clock";
   lessons: Lesson[];
 }
 
 export const ISLANDS: Island[] = [
   {
     slug: "salem",
-    title: "Сәлам",
-    titleRu: "Приветствия",
+    title: "Привет",
+    titleRu: "Сәлам",
     description: "Первый остров: здороваемся, знакомимся, прощаемся.",
+    guide: "Ак бабай",
     level: "Башлангыч",
     icon: "wave",
     lessons: [
@@ -57,10 +60,36 @@ export const ISLANDS: Island[] = [
     ],
   },
   {
+    slug: "ashamlyk",
+    title: "Еда",
+    titleRu: "Ашамлыклар",
+    description: "Чай, өчпочмак и всё самое вкусное.",
+    guide: "Шүрәле",
+    level: "Башлангыч",
+    icon: "apple",
+    lessons: [
+      {
+        id: "ashamlyk-1",
+        title: "Чәй табыны",
+        titleRu: "Чаепитие",
+        words: [
+          { tt: "Исәнмесез!", ru: "Здравствуйте!", transcription: "и-сән-ме-сез" },
+          { tt: "чәй", ru: "чай", transcription: "чәй" },
+          { tt: "икмәк", ru: "хлеб", transcription: "ик-мәк" },
+          { tt: "сөт", ru: "молоко", transcription: "сөт" },
+          { tt: "бал", ru: "мёд", transcription: "бал" },
+          { tt: "чәкчәк", ru: "чак-чак", transcription: "чәк-чәк" },
+          { tt: "өчпочмак", ru: "треугольник (эчпочмак)", transcription: "өч-поч-мак" },
+        ],
+      },
+    ],
+  },
+  {
     slug: "sannar",
-    title: "Саннар",
-    titleRu: "Числа",
+    title: "Числа",
+    titleRu: "Саннар",
     description: "Считаем до десяти и спрашиваем возраст.",
+    guide: "Кыш бабай",
     level: "Башлангыч",
     icon: "hash",
     lessons: [
@@ -92,9 +121,10 @@ export const ISLANDS: Island[] = [
   },
   {
     slug: "gaila",
-    title: "Гаилә",
-    titleRu: "Семья",
+    title: "Семья",
+    titleRu: "Гаилә",
     description: "Рассказываем о близких и родных.",
+    guide: "Әби",
     level: "Башлангыч",
     icon: "home",
     lessons: [
@@ -114,33 +144,59 @@ export const ISLANDS: Island[] = [
     ],
   },
   {
-    slug: "ashamlyk",
-    title: "Ашамлыклар",
-    titleRu: "Еда",
-    description: "Чай, өчпочмак и всё самое вкусное.",
+    slug: "hayvannar",
+    title: "Животные",
+    titleRu: "Хайваннар",
+    description: "Бүре, аю һәм урман дуслары.",
+    guide: "Бүре",
     level: "Башлангыч",
-    icon: "apple",
+    icon: "paw",
     lessons: [
       {
-        id: "ashamlyk-1",
-        title: "Чәй табыны",
-        titleRu: "Чаепитие",
+        id: "hayvannar-1",
+        title: "Урман дуслары",
+        titleRu: "Лесные друзья",
         words: [
-          { tt: "чәй", ru: "чай", transcription: "чәй" },
-          { tt: "икмәк", ru: "хлеб", transcription: "ик-мәк" },
-          { tt: "сөт", ru: "молоко", transcription: "сөт" },
-          { tt: "бал", ru: "мёд", transcription: "бал" },
-          { tt: "чәкчәк", ru: "чак-чак", transcription: "чәк-чәк" },
-          { tt: "өчпочмак", ru: "треугольник (эчпочмак)", transcription: "өч-поч-мак" },
+          { tt: "бүре", ru: "волк", transcription: "бү-ре" },
+          { tt: "аю", ru: "медведь", transcription: "а-ю" },
+          { tt: "төлке", ru: "лиса", transcription: "төл-ке" },
+          { tt: "куян", ru: "заяц", transcription: "ку-ян" },
+          { tt: "ат", ru: "лошадь", transcription: "ат" },
+          { tt: "песи", ru: "кошка", transcription: "пе-си" },
+        ],
+      },
+    ],
+  },
+  {
+    slug: "shahar",
+    title: "Город",
+    titleRu: "Шәһәр",
+    description: "Казан урамнары буйлап сәяхәт.",
+    guide: "Салих абый",
+    level: "Башлангыч",
+    icon: "building",
+    lessons: [
+      {
+        id: "shahar-1",
+        title: "Шәһәрдә",
+        titleRu: "В городе",
+        words: [
+          { tt: "урам", ru: "улица", transcription: "у-рам" },
+          { tt: "мәйдан", ru: "площадь", transcription: "мәй-дан" },
+          { tt: "күпер", ru: "мост", transcription: "кү-пер" },
+          { tt: "вокзал", ru: "вокзал", transcription: "вок-зал" },
+          { tt: "музей", ru: "музей", transcription: "му-зей" },
+          { tt: "Казан кремле", ru: "Казанский кремль", transcription: "ка-зан крем-ле" },
         ],
       },
     ],
   },
   {
     slug: "tabigat",
-    title: "Табигать",
-    titleRu: "Природа",
+    title: "Природа",
+    titleRu: "Табигать",
     description: "Идел, урман һәм болытлар турында.",
+    guide: "Су анасы",
     level: "Дәвам",
     icon: "tree",
     lessons: [
@@ -161,23 +217,72 @@ export const ISLANDS: Island[] = [
   },
   {
     slug: "sayahet",
-    title: "Сәяхәт",
-    titleRu: "Путешествие",
-    description: "Казан урамнары буйлап сәяхәт.",
+    title: "Путешествие",
+    titleRu: "Сәяхәт",
+    description: "Юлга җыенабыз: юнәлешләр һәм транспорт.",
+    guide: "Юлчы бабай",
     level: "Дәвам",
     icon: "compass",
     lessons: [
       {
         id: "sayahet-1",
-        title: "Шәһәрдә",
-        titleRu: "В городе",
+        title: "Юлда",
+        titleRu: "В пути",
         words: [
-          { tt: "урам", ru: "улица", transcription: "у-рам" },
-          { tt: "мәйдан", ru: "площадь", transcription: "мәй-дан" },
-          { tt: "күпер", ru: "мост", transcription: "кү-пер" },
-          { tt: "вокзал", ru: "вокзал", transcription: "вок-зал" },
-          { tt: "музей", ru: "музей", transcription: "му-зей" },
-          { tt: "Казан кремле", ru: "Казанский кремль", transcription: "ка-зан крем-ле" },
+          { tt: "юл", ru: "дорога", transcription: "юл" },
+          { tt: "поезд", ru: "поезд", transcription: "по-езд" },
+          { tt: "очкыч", ru: "самолёт", transcription: "оч-кыч" },
+          { tt: "уңга", ru: "направо", transcription: "уң-га" },
+          { tt: "сулга", ru: "налево", transcription: "сул-га" },
+          { tt: "туры", ru: "прямо", transcription: "ту-ры" },
+        ],
+      },
+    ],
+  },
+  {
+    slug: "tosler",
+    title: "Цвета",
+    titleRu: "Төсләр",
+    description: "Яшел урман, зәңгәр күк, алтын көн.",
+    guide: "Алтын кош",
+    level: "Дәвам",
+    icon: "palette",
+    lessons: [
+      {
+        id: "tosler-1",
+        title: "Төсләр",
+        titleRu: "Цвета",
+        words: [
+          { tt: "кызыл", ru: "красный", transcription: "кы-зыл" },
+          { tt: "яшел", ru: "зелёный", transcription: "я-шель" },
+          { tt: "зәңгәр", ru: "синий", transcription: "зәң-гәр" },
+          { tt: "сары", ru: "жёлтый", transcription: "са-ры" },
+          { tt: "ак", ru: "белый", transcription: "ак" },
+          { tt: "кара", ru: "чёрный", transcription: "ка-ра" },
+        ],
+      },
+    ],
+  },
+  {
+    slug: "vakyt",
+    title: "Время",
+    titleRu: "Вакыт",
+    description: "Көн, атна, ел — вакытны өйрәнәбез.",
+    guide: "Ай бабай",
+    level: "Дәвам",
+    icon: "clock",
+    lessons: [
+      {
+        id: "vakyt-1",
+        title: "Кайчан?",
+        titleRu: "Когда?",
+        words: [
+          { tt: "бүген", ru: "сегодня", transcription: "бү-ген" },
+          { tt: "иртәгә", ru: "завтра", transcription: "ир-тә-гә" },
+          { tt: "кичә", ru: "вчера", transcription: "ки-чә" },
+          { tt: "иртә", ru: "утро", transcription: "ир-тә" },
+          { tt: "кич", ru: "вечер", transcription: "кич" },
+          { tt: "төн", ru: "ночь", transcription: "төн" },
         ],
       },
     ],
@@ -186,4 +291,30 @@ export const ISLANDS: Island[] = [
 
 export function getIsland(slug: string): Island | undefined {
   return ISLANDS.find((i) => i.slug === slug);
+}
+
+export type IslandStatus = "done" | "open" | "locked";
+
+export function islandProgress(
+  island: Island,
+  completedLessons: string[],
+): { done: number; total: number; pct: number } {
+  const total = island.lessons.length;
+  const done = island.lessons.filter((l) => completedLessons.includes(l.id)).length;
+  return { done, total, pct: total === 0 ? 0 : Math.round((done / total) * 100) };
+}
+
+/** Остров открыт, если это первый остров или предыдущий полностью пройден. */
+export function islandStatus(
+  index: number,
+  completedLessons: string[],
+): IslandStatus {
+  if (index === 0) {
+    const p = islandProgress(ISLANDS[0], completedLessons);
+    return p.done === p.total ? "done" : "open";
+  }
+  const prev = islandProgress(ISLANDS[index - 1], completedLessons);
+  if (prev.done < prev.total) return "locked";
+  const cur = islandProgress(ISLANDS[index], completedLessons);
+  return cur.done === cur.total ? "done" : "open";
 }
