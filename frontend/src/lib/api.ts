@@ -91,6 +91,33 @@ export async function checkViaApi(expected: string, heard: string): Promise<bool
   }
 }
 
+export interface Grade {
+  correct: boolean;
+  hint_ru: string;
+  syllables: string[];
+  say_this: string;
+  source: "llm" | "offline";
+}
+
+/** Строгий судья: /api/grade (LLM), иначе локальная проверка. Не бросает. */
+export async function gradeViaApi(expected: string, heard: string): Promise<Grade> {
+  try {
+    const res = await post("/api/grade", { expected, heard });
+    const data = (await res.json()) as Grade;
+    if (typeof data.correct !== "boolean") throw new Error("bad grade");
+    return {
+      correct: data.correct,
+      hint_ru: data.hint_ru || "",
+      syllables: Array.isArray(data.syllables) ? data.syllables : [],
+      say_this: data.say_this || expected,
+      source: data.source === "llm" ? "llm" : "offline",
+    };
+  } catch {
+    const correct = await checkViaApi(expected, heard);
+    return { correct, hint_ru: "", syllables: [], say_this: expected, source: "offline" };
+  }
+}
+
 export function apiConfigured(): boolean {
   return API_URL !== "";
 }

@@ -8,13 +8,14 @@ import confetti from "canvas-confetti";
 import { ArrowLeft, ArrowRight, Volume2, X } from "lucide-react";
 import { getIsland, ISLANDS } from "@/data/islands";
 import {
-  checkViaApi,
+  gradeViaApi,
   saveProgressApi,
   sttRecognize,
   translateViaApi,
   ttsSpeak,
 } from "@/lib/api";
 import { useTelegram } from "@/providers/telegram-provider";
+import { SpeechBubble, type Speech } from "@/components/speech-bubble";
 import { useProgress, XP_PER_LESSON } from "@/store/use-progress";
 import { IslandIcon } from "@/components/island-icon";
 import { TaskNumbers } from "@/components/task-numbers";
@@ -61,6 +62,17 @@ function createRecognizer(): SR | null {
 
 type Phase = "task" | "success" | "fail" | "finished";
 
+const PRAISE: Speech[] = [
+  { tt: "Дөрес! Молодец!", ru: "Правильно! Молодец!" },
+  { tt: "Әйбәт! Бик яхшы!", ru: "Отлично! Очень хорошо!" },
+  { tt: "Шәп! Дәвам итәбез!", ru: "Класс! Продолжаем!" },
+];
+
+const FAREWELL: Speech = {
+  tt: "Рәхмәт! Киләсе утрауда очрашабыз!",
+  ru: "Спасибо! Увидимся на следующем острове!",
+};
+
 export default function IslandPage({
   params,
 }: {
@@ -81,6 +93,11 @@ export default function IslandPage({
   const [liveTt, setLiveTt] = useState<string | null>(null);
   const [translating, setTranslating] = useState(false);
   const [wrongPick, setWrongPick] = useState<string | null>(null);
+  const [fails, setFails] = useState(0);
+  const [gradeHint, setGradeHint] = useState("");
+  const [gradeSyllables, setGradeSyllables] = useState<string[]>([]);
+  const [speech, setSpeech] = useState<Speech | null>(null);
+  const [needsTap, setNeedsTap] = useState(false);
   const { initDataRaw } = useTelegram();
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -94,6 +111,19 @@ export default function IslandPage({
   const words = lesson.words;
   const word = words[Math.min(step, words.length - 1)];
   const islandIndex = ISLANDS.findIndex((i) => i.slug === slug);
+
+  // Титры хранителя: приветствие на входе + попытка автоплея.
+  useEffect(() => {
+    setSpeech(island.greeting);
+    let cancelled = false;
+    void ttsSpeak(island.greeting.tt).then((played) => {
+      if (!cancelled && !played) setNeedsTap(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug]);
 
   function markDone(i: number) {
     setDoneSteps((d) => {
@@ -116,6 +146,9 @@ export default function IslandPage({
       setShowRu(false);
       setLiveTt(null);
       setWrongPick(null);
+      setFails(0);
+      setGradeHint("");
+      setGradeSyllables([]);
       setHeard("");
     }
   }
@@ -159,9 +192,11 @@ export default function IslandPage({
     if (tt === word.tt) {
       setWrongPick(null);
       setShowRu(true);
+      setSpeech(PRAISE[step % PRAISE.length]);
       setPhase("success");
     } else {
       setWrongPick(tt);
+      setSpeech({ tt: word.tt, ru: "Юк... Тыңла һәм тагын сайла" });
     }
   }
 
@@ -171,14 +206,31 @@ export default function IslandPage({
     setShowRu(false);
     setLiveTt(null);
     setWrongPick(null);
+    setFails(0);
+    setGradeHint("");
+    setGradeSyllables([]);
     setPhase(doneSteps[i] ? "success" : "task");
   }
 
   async function handleTranscript(said: string) {
-    const ok = await checkViaApi(word.tt, said);
+    // Строгий судья: LLM (Ollama), иначе Левенштейн. Дальше — только зачёт.
+    const g = await gradeViaApi(word.tt, said);
     setHeard(said);
-    setPhase(ok ? "success" : "fail");
-    if (ok) setShowRu(true);
+    if (g.correct) {
+      setFails(0);
+      setGradeHint("");
+      setGradeSyllables([]);
+      setShowRu(true);
+      setSpeech(PRAISE[step % PRAISE.length]);
+      setPhase("success");
+    } else {
+      const f = fails + 1;
+      setFails(f);
+      setGradeHint(g.hint_ru);
+      setGradeSyllables(g.syllables);
+      setSpeech({ tt: g.say_this, ru: g.hint_ru || "Тыңла һәм кабатла" });
+      setPhase("fail");
+    }
   }
 
   function stopRecording() {
@@ -294,6 +346,9 @@ export default function IslandPage({
         <p className="text-[#9db8a8]">
           {lesson.title} · {island.guide} гордится тобой.
         </p>
+        <p className="max-w-xs text-sm text-[#9db8a8]">
+          «{FAREWELL.tt}» — {FAREWELL.ru}
+        </p>
         <p className="rounded-full bg-[#f5c044]/15 px-4 py-1.5 font-bold text-[#f5c044]">
           +{XP_PER_LESSON} XP
         </p>
@@ -353,6 +408,9 @@ export default function IslandPage({
           guide={island.guide}
           active={listening || phase === "success"}
         />
+
+        {/* Титры: что говорит хранитель */}
+        {speech && <SpeechBubble speech={speech} needsTap={needsTap} />}
 
         {/* 4. Речь ИИ: татарский + перевод */}
         <section className="rounded-2xl border border-[#1c4d3a] bg-[#0a2e23]/80 p-4">
@@ -473,7 +531,7 @@ export default function IslandPage({
               <span className="text-lg" role="img" aria-label="Не совсем">
                 ❌
               </span>
-              Не совсем так
+              Не совсем так{gradeHint ? ` — ${gradeHint}` : ""}
             </p>
             <p className="text-sm text-[#9db8a8]">
               {heard ? (
@@ -481,18 +539,27 @@ export default function IslandPage({
                   Услышал: «{heard}». Нужно: «{word.tt}»
                 </>
               ) : (
-                <>
-                  Не расслышал. Послушай диктора{" "}
-                  <button
-                    onClick={() => speak(word.tt)}
-                    className="inline-flex items-center gap-1 text-[#34d399] underline"
-                  >
-                    <Volume2 className="size-4" aria-hidden /> слушать
-                  </button>{" "}
-                  и попробуй ещё.
-                </>
+                <>Не расслышал. Послушай и попробуй ещё.</>
               )}
             </p>
+            {fails >= 2 && gradeSyllables.length > 0 && (
+              <div>
+                <p className="pb-1.5 text-xs text-[#9db8a8]">
+                  Скажи по слогам (нажми, чтобы услышать):
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {gradeSyllables.map((s, i) => (
+                    <button
+                      key={`${s}-${i}`}
+                      onClick={() => speak(s)}
+                      className="rounded-lg border border-[#f5c044]/50 bg-[#f5c044]/10 px-2.5 py-1 text-sm font-semibold text-[#f5c044]"
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="flex gap-2">
               <button
                 onClick={() => setPhase("task")}
@@ -500,12 +567,21 @@ export default function IslandPage({
               >
                 Ещё раз
               </button>
-              <button
-                onClick={next}
-                className="h-11 flex-1 rounded-xl border border-[#1c4d3a] text-sm"
-              >
-                Дальше
-              </button>
+              {fails >= 3 ? (
+                <button
+                  onClick={next}
+                  className="h-11 flex-1 rounded-xl border border-[#1c4d3a] text-sm"
+                >
+                  Пропустить
+                </button>
+              ) : (
+                <button
+                  onClick={() => speak(word.tt)}
+                  className="h-11 flex-1 rounded-xl border border-[#1c4d3a] text-sm"
+                >
+                  🔊 Послушать
+                </button>
+              )}
             </div>
           </section>
         )}

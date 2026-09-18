@@ -13,8 +13,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="tt" className="h-full antialiased">
       <body className="mx-auto flex min-h-dvh w-full max-w-md flex-col">
+        <div className="aurora aurora-a" aria-hidden />
+        <div className="aurora aurora-b" aria-hidden />
         <TelegramProvider>
-          <div className="flex flex-1 flex-col pb-24">{children}</div>
+          <div className="relative z-[1] flex flex-1 flex-col pb-24">{children}</div>
           <TabBar />
         </TelegramProvider>
       </body>

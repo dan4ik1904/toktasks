@@ -65,8 +65,21 @@ python -m bot.main
 
 Эндпоинт `POST /api/assistant/chat` → `{"message": "..."}` → `{"reply": "..."}`.
 
-- Если задан `LLM_API_KEY` — отвечает OpenAI-совместимая модель (см. `LLM_BASE_URL`, `LLM_MODEL`).
-- Без ключа — встроенный офлайн-режим (мини-словарь), приложение работает сразу.
+- Если доступен LLM (см. ниже) — отвечает OpenAI-совместимая модель.
+- Иначе — встроенный офлайн-режим (мини-словарь), приложение работает сразу.
+
+## Строгий судья произношения (Ollama)
+
+`POST /api/grade` → `{expected, heard}` → `{correct, hint_ru, syllables, say_this, source}`.
+Судья — локальная Ollama (офлайн, без геоблока; из РФ Gemini недоступен):
+
+```bash
+ollama pull qwen2.5 && ollama serve   # :11434
+```
+
+Настройки в `backend/.env`: `LLM_BASE_URL` (по умолчанию `http://localhost:11434/v1`),
+`LLM_MODEL` (по умолчанию `qwen2.5`), `LLM_API_KEY`. Любой OpenAI-совместимый API
+встаёт без кода. Без LLM — фолбэк на Левенштейна (`source: "offline"`).
 
 ## Стек
 

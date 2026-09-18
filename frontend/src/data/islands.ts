@@ -18,6 +18,8 @@ export interface Island {
   description: string;
   /** Дух-хранитель острова */
   guide: string;
+  /** Приветствие духа (титры + озвучка на входе в урок). */
+  greeting: { tt: string; ru: string };
   level: "Башлангыч" | "Дәвам";
   icon: "wave" | "hash" | "home" | "apple" | "paw" | "building" | "tree" | "compass" | "palette" | "clock";
   lessons: Lesson[];
@@ -30,6 +32,10 @@ export const ISLANDS: Island[] = [
     titleRu: "Сәлам",
     description: "Первый остров: здороваемся, знакомимся, прощаемся.",
     guide: "Ак бабай",
+    greeting: {
+      tt: "Исәнмесез! Мин Ак бабай. Әйдәгез, сәламләшергә өйрәнебез!",
+      ru: "Здравствуйте! Я Ак бабай. Давай учиться здороваться!",
+    },
     level: "Башлангыч",
     icon: "wave",
     lessons: [
@@ -65,6 +71,10 @@ export const ISLANDS: Island[] = [
     titleRu: "Ашамлыклар",
     description: "Чай, өчпочмак и всё самое вкусное.",
     guide: "Шүрәле",
+    greeting: {
+      tt: "Исәнме! Мин Шүрәле. Бүген чәй эчәбез һәм ашарга өйрәнәбез!",
+      ru: "Привет! Я Шурале. Сегодня пьём чай и учим еду!",
+    },
     level: "Башлангыч",
     icon: "apple",
     lessons: [
@@ -90,6 +100,10 @@ export const ISLANDS: Island[] = [
     titleRu: "Саннар",
     description: "Считаем до десяти и спрашиваем возраст.",
     guide: "Кыш бабай",
+    greeting: {
+      tt: "Исәнме! Мин Кыш бабай. Саныйбыз: бер, ике, өч!",
+      ru: "Привет! Я Кыш бабай. Считаем: раз, два, три!",
+    },
     level: "Башлангыч",
     icon: "hash",
     lessons: [
@@ -125,6 +139,10 @@ export const ISLANDS: Island[] = [
     titleRu: "Гаилә",
     description: "Рассказываем о близких и родных.",
     guide: "Әби",
+    greeting: {
+      tt: "Исәнме, балам! Мин Әби. Гаиләбез белән танышабыз!",
+      ru: "Здравствуй, дитя! Я Эби. Познакомимся с семьёй!",
+    },
     level: "Башлангыч",
     icon: "home",
     lessons: [
@@ -149,6 +167,10 @@ export const ISLANDS: Island[] = [
     titleRu: "Хайваннар",
     description: "Бүре, аю һәм урман дуслары.",
     guide: "Бүре",
+    greeting: {
+      tt: "У-у! Мин Бүре. Урман дуслары белән танышабыз!",
+      ru: "У-у! Я Волк. Познакомимся с лесными друзьями!",
+    },
     level: "Башлангыч",
     icon: "paw",
     lessons: [
@@ -173,6 +195,10 @@ export const ISLANDS: Island[] = [
     titleRu: "Шәһәр",
     description: "Казан урамнары буйлап сәяхәт.",
     guide: "Салих абый",
+    greeting: {
+      tt: "Исәнме! Мин Салих абый. Казан буйлап йөрибез!",
+      ru: "Привет! Я Салих абый. Гуляем по Казани!",
+    },
     level: "Башлангыч",
     icon: "building",
     lessons: [
@@ -197,6 +223,10 @@ export const ISLANDS: Island[] = [
     titleRu: "Табигать",
     description: "Идел, урман һәм болытлар турында.",
     guide: "Су анасы",
+    greeting: {
+      tt: "Исәнме! Мин Су анасы. Табигатьне өйрәнәбез!",
+      ru: "Привет! Я Су анасы. Изучаем природу!",
+    },
     level: "Дәвам",
     icon: "tree",
     lessons: [
@@ -221,6 +251,10 @@ export const ISLANDS: Island[] = [
     titleRu: "Сәяхәт",
     description: "Юлга җыенабыз: юнәлешләр һәм транспорт.",
     guide: "Юлчы бабай",
+    greeting: {
+      tt: "Исәнме! Мин Юлчы бабай. Юлга чыгабыз!",
+      ru: "Привет! Я Юлчы бабай. Отправляемся в путь!",
+    },
     level: "Дәвам",
     icon: "compass",
     lessons: [
@@ -245,6 +279,10 @@ export const ISLANDS: Island[] = [
     titleRu: "Төсләр",
     description: "Яшел урман, зәңгәр күк, алтын көн.",
     guide: "Алтын кош",
+    greeting: {
+      tt: "Исәнме! Мин Алтын кош. Төсләр белән уйныйбыз!",
+      ru: "Привет! Я Золотая птица. Играем с цветами!",
+    },
     level: "Дәвам",
     icon: "palette",
     lessons: [
@@ -269,6 +307,10 @@ export const ISLANDS: Island[] = [
     titleRu: "Вакыт",
     description: "Көн, атна, ел — вакытны өйрәнәбез.",
     guide: "Ай бабай",
+    greeting: {
+      tt: "Исәнме! Мин Ай бабай. Вакытны өйрәнәбез!",
+      ru: "Привет! Я Ай бабай. Изучаем время!",
+    },
     level: "Дәвам",
     icon: "clock",
     lessons: [

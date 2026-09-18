@@ -29,6 +29,75 @@ body {
     var(--bg);
   color: var(--fg);
   min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+/* Живая аврора на фоне */
+.aurora {
+  position: fixed;
+  border-radius: 9999px;
+  filter: blur(70px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.aurora-a {
+  width: 320px;
+  height: 320px;
+  top: -110px;
+  left: -90px;
+  background: rgba(14, 159, 110, 0.22);
+  animation: drift-a 14s ease-in-out infinite alternate;
+}
+
+.aurora-b {
+  width: 280px;
+  height: 280px;
+  top: 30%;
+  right: -110px;
+  background: rgba(245, 192, 68, 0.13);
+  animation: drift-b 18s ease-in-out infinite alternate;
+}
+
+@keyframes drift-a {
+  from {
+    transform: translate(0, 0) scale(1);
+  }
+  to {
+    transform: translate(50px, 36px) scale(1.15);
+  }
+}
+
+@keyframes drift-b {
+  from {
+    transform: translate(0, 0) scale(1.1);
+  }
+  to {
+    transform: translate(-46px, 50px) scale(0.95);
+  }
+}
+
+/* Парение эмодзи островов */
+@keyframes float-slow {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-7px);
+  }
+}
+
+.float-slow {
+  animation: float-slow 4.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .float-slow,
+  .aurora-a,
+  .aurora-b {
+    animation: none;
+  }
 }
 
 /* Тёплое свечение пройденного острова */

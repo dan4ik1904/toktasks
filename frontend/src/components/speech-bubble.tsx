@@ -1,0 +1,54 @@
+"use client";
+
+import { motion } from "framer-motion";
+import { Volume2 } from "lucide-react";
+import { ttsSpeak } from "@/lib/api";
+import { cn } from "@/lib/utils";
+
+export interface Speech {
+  tt: string;
+  ru: string;
+}
+
+/**
+ * Титры духа-хранителя: что говорит ИИ, крупно по-татарски + перевод.
+ * Тап по динамику повторяет реплику.
+ */
+export function SpeechBubble({
+  speech,
+  needsTap = false,
+}: {
+  speech: Speech;
+  needsTap?: boolean;
+}) {
+  return (
+    <motion.section
+      key={speech.tt}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25 }}
+      aria-live="polite"
+      className="rounded-2xl border border-[#f5c044]/35 bg-[#0a2e23]/80 p-4"
+    >
+      <p className="pb-1 text-[11px] tracking-widest text-[#f5c044] uppercase">
+        {needsTap ? "Нажми 🔊 — хранитель говорит" : "Хранитель говорит"}
+      </p>
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1">
+          <p className="text-lg font-semibold text-balance">{speech.tt}</p>
+          <p className="pt-1 text-sm text-[#9db8a8]">{speech.ru}</p>
+        </div>
+        <button
+          onClick={() => void ttsSpeak(speech.tt)}
+          aria-label="Прослушать реплику"
+          className={cn(
+            "flex size-10 shrink-0 items-center justify-center rounded-full bg-[#f5c044]/15 text-[#f5c044] hover:bg-[#f5c044]/25",
+            needsTap && "animate-pulse",
+          )}
+        >
+          <Volume2 className="size-5" aria-hidden />
+        </button>
+      </div>
+    </motion.section>
+  );
+}

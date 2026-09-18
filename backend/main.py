@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from api import stt, translate, tts
-from assistant import ask_assistant
+from assistant import ask_assistant, grade_pronunciation, probe_llm
 from auth import telegram_user
 from config import settings
 from island_logic import (
@@ -16,7 +16,7 @@ from island_logic import (
     save_progress,
 )
 
-app = FastAPI(title="Татар.Уку API", version="0.2.0")
+app = FastAPI(title="Татар.Уку API", version="0.3.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -57,6 +57,22 @@ class CheckRequest(BaseModel):
 @app.post("/api/check")
 def api_check(req: CheckRequest) -> dict:
     return check_answer(req.expected, req.heard)
+
+
+class GradeRequest(BaseModel):
+    expected: str
+    heard: str
+
+
+@app.post("/api/grade")
+async def api_grade(req: GradeRequest) -> dict:
+    """Строгий судья: LLM (Ollama), иначе Левенштейн. Всегда 200 + source."""
+    return await grade_pronunciation(req.expected, req.heard)
+
+
+@app.on_event("startup")
+async def _startup() -> None:
+    await probe_llm()
 
 
 class ProgressRequest(BaseModel):

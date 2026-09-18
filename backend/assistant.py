@@ -46,7 +46,7 @@ async def ask_assistant(message: str) -> str:
     message = message.strip()
     if not message:
         return "Спроси что-нибудь про татарский — слово, фразу или правило."
-    if settings.llm_api_key:
+    if LLM_AVAILABLE:
         return await _ask_llm(message)
     return _ask_offline(message)
 
@@ -80,5 +80,117 @@ async def _ask_llm(message: str) -> str:
             data = resp.json()
             return data["choices"][0]["message"]["content"].strip()
     except Exception:
-        # LLM недоступен — деградируем в офлайн-режим, а не падаем.
-        return _ask_offline(message) + "\n(LLM временно недоступен.)"
+        # LLM упал посреди диалога — деградируем в офлайн-режим.
+        return _ask_offline(message)
+
+
+# --- Строгий судья произношения (Ollama / любой OpenAI-совместимый LLM) ---
+
+LLM_AVAILABLE = False
+
+GRADE_SYSTEM = (
+    "Син — татар теле укытучысы. Укучы фразу әйтергә тиеш. "
+    "Отвечай СТРОГО JSON без пояснений: "
+    '{"correct": bool, "hint_ru": "короткая подсказка по-русски (до 15 слов), что исправить", '
+    '"syllables": ["слоги эталона через дефис-логику"], "say_this": "эталон целиком"}. '
+    "Прощай мелкие огрехи распознавания (регистр, пунктуация). "
+    "Если услышанное явно не совпадает с эталоном — correct=false и конкретная подсказка."
+)
+
+VOWELS = set("аәеёиоуөүыяюэАӘЕЁИОУӨҮЫЯЮЭ")
+
+
+def split_syllables(word: str) -> list[str]:
+    """Наивная разбивка: режем перед согласным, за которым идёт гласная."""
+    clean = "".join(ch for ch in word if ch.isalpha())
+    chunks, cur = [], ""
+    chars = list(clean)
+    for i, ch in enumerate(chars):
+        nxt = chars[i + 1] if i + 1 < len(chars) else ""
+        if (
+            cur
+            and ch not in VOWELS
+            and nxt in VOWELS
+            and any(c in VOWELS for c in cur)
+        ):
+            chunks.append(cur)
+            cur = ""
+        cur += ch
+    if cur:
+        chunks.append(cur)
+    return [c for c in chunks if c] or [word]
+
+
+async def probe_llm() -> bool:
+    """Проверка доступности LLM при старте (Ollama: GET /models)."""
+    global LLM_AVAILABLE
+    try:
+        base = settings.llm_base_url.rstrip("/")
+        if base.endswith("/v1"):
+            base = base[: -len("/v1")]
+        async with httpx.AsyncClient(timeout=3) as client:
+            resp = await client.get(base + "/models")
+            resp.raise_for_status()
+        LLM_AVAILABLE = True
+    except Exception:
+        LLM_AVAILABLE = False
+    return LLM_AVAILABLE
+
+
+async def _grade_llm(expected: str, heard: str) -> dict | None:
+    url = settings.llm_base_url.rstrip("/") + "/chat/completions"
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            resp = await client.post(
+                url,
+                headers={"Authorization": f"Bearer {settings.llm_api_key}"},
+                json={
+                    "model": settings.llm_model,
+                    "messages": [
+                        {"role": "system", "content": GRADE_SYSTEM},
+                        {
+                            "role": "user",
+                            "content": f"ЭТАЛОН: {expected}\nУСЛЫШАНО: {heard}",
+                        },
+                    ],
+                    "temperature": 0.2,
+                    "max_tokens": 300,
+                },
+            )
+            resp.raise_for_status()
+            text = resp.json()["choices"][0]["message"]["content"]
+        start, end = text.find("{"), text.rfind("}")
+        data = __import__("json").loads(text[start : end + 1])
+        return {
+            "correct": bool(data.get("correct")),
+            "hint_ru": str(data.get("hint_ru") or "Попробуй ещё раз, медленно."),
+            "syllables": list(data.get("syllables") or split_syllables(expected)),
+            "say_this": str(data.get("say_this") or expected),
+            "source": "llm",
+        }
+    except Exception:
+        return None
+
+
+async def grade_pronunciation(expected: str, heard: str) -> dict:
+    """Строгая проверка: LLM-судья, иначе Левенштейн + шаблоны."""
+    if LLM_AVAILABLE:
+        judged = await _grade_llm(expected, heard)
+        if judged:
+            return judged
+    from island_logic import check_answer
+
+    base = check_answer(expected, heard)
+    syl = split_syllables(expected)
+    hint = (
+        "Дөрес! Молодец!"
+        if base["correct"]
+        else f"Скажи по слогам: {' – '.join(syl)}. Потом целиком: «{expected}»."
+    )
+    return {
+        "correct": base["correct"],
+        "hint_ru": hint,
+        "syllables": syl,
+        "say_this": expected,
+        "source": "offline",
+    }

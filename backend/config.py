@@ -12,10 +12,12 @@ class Settings(BaseSettings):
     api_port: int = 8000
     cors_origins: str = "http://localhost:3000"
 
-    # LLM для Ярдәмче (необязательно — без него офлайн-режим).
-    llm_api_key: str = ""
-    llm_base_url: str = "https://api.openai.com/v1"
-    llm_model: str = "gpt-4o-mini"
+    # LLM-судья произношения. По умолчанию — локальная Ollama
+    # (офлайн, без геоблока): ollama pull qwen2.5 && ollama serve.
+    # Переключается тремя строками .env на любой OpenAI-совместимый API.
+    llm_api_key: str = "ollama"
+    llm_base_url: str = "http://localhost:11434/v1"
+    llm_model: str = "qwen2.5"
 
     # Tatsoft — реальные публичные ручки (проверены живьём):
     #   TTS:      GET {base}/listening/?speaker=alsu&text=... -> {wav_base64, sample_rate}

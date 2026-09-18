@@ -65,6 +65,10 @@ export function IslandCard({
       >
         {/* Арт острова с покачиванием */}
         <div className="flex h-28 items-center justify-center bg-gradient-to-b from-[#34d399]/20 via-[#0d3a2b] to-[#04150f]">
+          <div
+            className={reduceMotion ? undefined : "float-slow"}
+            style={{ animationDelay: `${(index % 6) * 0.7}s` }}
+          >
           <motion.span
             role="img"
             aria-label={`Остров ${island.title}`}
@@ -74,6 +78,7 @@ export function IslandCard({
           >
             {EMOJI[island.icon]}
           </motion.span>
+          </div>
         </div>
 
         <div className="flex flex-1 flex-col gap-1 p-3">
