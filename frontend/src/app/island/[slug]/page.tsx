@@ -9,8 +9,10 @@ import { ArrowLeft, ArrowRight, Volume2, X } from "lucide-react";
 import { getIsland, ISLANDS } from "@/data/islands";
 import {
   gradeViaApi,
+  prefetchTts,
   saveProgressApi,
   sttRecognize,
+  toWav16kMono,
   translateViaApi,
   ttsSpeak,
 } from "@/lib/api";
@@ -22,8 +24,8 @@ import { TaskNumbers } from "@/components/task-numbers";
 import { AIOrb } from "@/components/ai-orb";
 import { VoiceButton } from "@/components/voice-button";
 
-function speak(text: string) {
-  void ttsSpeak(text);
+function speak(text: string, voice = "alsu") {
+  void ttsSpeak(text, voice);
 }
 
 type SR = {
@@ -63,9 +65,9 @@ function createRecognizer(): SR | null {
 type Phase = "task" | "success" | "fail" | "finished";
 
 const PRAISE: Speech[] = [
-  { tt: "Дөрес! Молодец!", ru: "Правильно! Молодец!" },
-  { tt: "Әйбәт! Бик яхшы!", ru: "Отлично! Очень хорошо!" },
-  { tt: "Шәп! Дәвам итәбез!", ru: "Класс! Продолжаем!" },
+  { tt: "Дөрес! Бик шәп!", ru: "Правильно! Очень круто!" },
+  { tt: "Әйбәт! Дәвам ит!", ru: "Отлично! Продолжай!" },
+  { tt: "Шәп! Син булдырасың!", ru: "Класс! У тебя получается!" },
 ];
 
 const FAREWELL: Speech = {
@@ -111,12 +113,13 @@ export default function IslandPage({
   const words = lesson.words;
   const word = words[Math.min(step, words.length - 1)];
   const islandIndex = ISLANDS.findIndex((i) => i.slug === slug);
+  const voice = island?.voice ?? "alsu";
 
   // Титры хранителя: приветствие на входе + попытка автоплея.
   useEffect(() => {
     setSpeech(island.greeting);
     let cancelled = false;
-    void ttsSpeak(island.greeting.tt).then((played) => {
+    void ttsSpeak(island.greeting.tt, voice).then((played) => {
       if (!cancelled && !played) setNeedsTap(true);
     });
     return () => {
@@ -124,6 +127,27 @@ export default function IslandPage({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
+
+  // Каждую новую реплику духа озвучиваем сразу (после жеста — можно).
+  const firstSpeech = useRef(true);
+  useEffect(() => {
+    if (!speech) return;
+    if (firstSpeech.current) {
+      firstSpeech.current = false;
+      return;
+    }
+    void ttsSpeak(speech.tt, voice).then((played) => {
+      if (!played) setNeedsTap(true);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [speech]);
+
+  // Предзагрузка озвучки следующего слова — отвечает мгновенно.
+  useEffect(() => {
+    const nxt = words[Math.min(step + 1, words.length - 1)];
+    if (nxt && nxt.tt !== word.tt) prefetchTts(nxt.tt, voice);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
 
   function markDone(i: number) {
     setDoneSteps((d) => {
@@ -213,7 +237,7 @@ export default function IslandPage({
   }
 
   async function handleTranscript(said: string) {
-    // Строгий судья: LLM (Ollama), иначе Левенштейн. Дальше — только зачёт.
+    // Строгий судья: LLM (Ollama), иначе Левенштейн. Дух отвечает по-татарски.
     const g = await gradeViaApi(word.tt, said);
     setHeard(said);
     if (g.correct) {
@@ -228,7 +252,7 @@ export default function IslandPage({
       setFails(f);
       setGradeHint(g.hint_ru);
       setGradeSyllables(g.syllables);
-      setSpeech({ tt: g.say_this, ru: g.hint_ru || "Тыңла һәм кабатла" });
+      setSpeech({ tt: g.hint_tt || g.say_this, ru: g.hint_ru });
       setPhase("fail");
     }
   }
@@ -241,7 +265,7 @@ export default function IslandPage({
     }
   }
 
-  function finishRecording() {
+  async function finishRecording() {
     setListening(false);
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
@@ -253,7 +277,9 @@ export default function IslandPage({
       setPhase("fail");
       return;
     }
-    sttRecognize(blob).then(handleTranscript).catch(() => {
+    // Конвертируем в WAV 16 кГц моно — иначе старый ASR чаще ошибается.
+    const wav = await toWav16kMono(blob).catch(() => blob);
+    sttRecognize(wav).then(handleTranscript).catch(() => {
       // Tatsoft недоступен — пробуем Web Speech, иначе повтор за диктором.
       webSpeechFallback();
     });
@@ -262,7 +288,7 @@ export default function IslandPage({
   function webSpeechFallback() {
     const rec = createRecognizer();
     if (!rec) {
-      speak(word.tt);
+      speak(word.tt, voice);
       setShowRu(true);
       setPhase("success");
       return;
@@ -410,13 +436,13 @@ export default function IslandPage({
         />
 
         {/* Титры: что говорит хранитель */}
-        {speech && <SpeechBubble speech={speech} needsTap={needsTap} />}
+        {speech && <SpeechBubble speech={speech} voice={island.voice} needsTap={needsTap} />}
 
         {/* 4. Речь ИИ: татарский + перевод */}
         <section className="rounded-2xl border border-[#1c4d3a] bg-[#0a2e23]/80 p-4">
           <div className="flex items-center justify-between gap-2">
             <button
-              onClick={() => speak(word.tt)}
+              onClick={() => speak(word.tt, voice)}
               aria-label="Прослушать фразу"
               className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white/5 text-xl hover:bg-white/10"
             >
@@ -428,7 +454,7 @@ export default function IslandPage({
               {word.tt}
             </p>
             <button
-              onClick={() => speak(word.tt)}
+              onClick={() => speak(word.tt, voice)}
               aria-label="Прослушать фразу"
               className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white/5 text-xl hover:bg-white/10"
             >
@@ -459,7 +485,7 @@ export default function IslandPage({
             <section className="rounded-2xl border border-[#1c4d3a] bg-[#0a2e23]/80 p-4 text-center">
               <p className="font-semibold">Выбери перевод:</p>
               <button
-                onClick={() => speak(word.tt)}
+                onClick={() => speak(word.tt, voice)}
                 className="pt-1 text-2xl font-bold text-[#f5c044]"
                 aria-label="Прослушать слово"
               >
@@ -506,15 +532,20 @@ export default function IslandPage({
 
         {phase === "success" && (
           <section className="flex items-center justify-between gap-2 rounded-2xl border border-[#34d399]/60 bg-[#0e9f6e]/20 p-3 pl-4">
-            <p className="flex items-center gap-2 font-semibold">
+            <p className="flex items-center gap-2">
               <span
                 className="flex size-8 items-center justify-center rounded-full border-2 border-[#34d399] text-lg"
                 role="img"
-                aria-label="Правильно"
+                aria-label="Дөрес"
               >
                 ✅
               </span>
-              Правильно! Молодец!
+              <span>
+                <span className="block font-semibold">Дөрес! Бик шәп!</span>
+                <span className="block text-xs font-normal text-[#9db8a8]">
+                  Правильно! Очень круто!
+                </span>
+              </span>
             </p>
             <button
               onClick={next}
@@ -527,11 +558,18 @@ export default function IslandPage({
 
         {phase === "fail" && (
           <section className="flex flex-col gap-3 rounded-2xl border border-red-400/50 bg-red-500/10 p-4">
-            <p className="flex items-center gap-2 font-semibold">
-              <span className="text-lg" role="img" aria-label="Не совсем">
+            <p className="flex items-center gap-2">
+              <span className="text-lg" role="img" aria-label="Юк әле">
                 ❌
               </span>
-              Не совсем так{gradeHint ? ` — ${gradeHint}` : ""}
+              <span>
+                <span className="block font-semibold">Юк әле{gradeHint ? "!" : ""}</span>
+                {gradeHint && (
+                  <span className="block text-xs font-normal text-[#9db8a8]">
+                    {gradeHint}
+                  </span>
+                )}
+              </span>
             </p>
             <p className="text-sm text-[#9db8a8]">
               {heard ? (
@@ -551,7 +589,7 @@ export default function IslandPage({
                   {gradeSyllables.map((s, i) => (
                     <button
                       key={`${s}-${i}`}
-                      onClick={() => speak(s)}
+                      onClick={() => speak(s, voice)}
                       className="rounded-lg border border-[#f5c044]/50 bg-[#f5c044]/10 px-2.5 py-1 text-sm font-semibold text-[#f5c044]"
                     >
                       {s}
@@ -576,7 +614,7 @@ export default function IslandPage({
                 </button>
               ) : (
                 <button
-                  onClick={() => speak(word.tt)}
+                  onClick={() => speak(word.tt, voice)}
                   className="h-11 flex-1 rounded-xl border border-[#1c4d3a] text-sm"
                 >
                   🔊 Послушать

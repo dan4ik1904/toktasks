@@ -18,6 +18,8 @@ export interface Island {
   description: string;
   /** Дух-хранитель острова */
   guide: string;
+  /** Голос Tatsoft TTS: almaz (муж.) / alsu (жен.). */
+  voice: "almaz" | "alsu";
   /** Приветствие духа (титры + озвучка на входе в урок). */
   greeting: { tt: string; ru: string };
   level: "Башлангыч" | "Дәвам";
@@ -32,6 +34,7 @@ export const ISLANDS: Island[] = [
     titleRu: "Сәлам",
     description: "Первый остров: здороваемся, знакомимся, прощаемся.",
     guide: "Ак бабай",
+    voice: "almaz",
     greeting: {
       tt: "Исәнмесез! Мин Ак бабай. Әйдәгез, сәламләшергә өйрәнебез!",
       ru: "Здравствуйте! Я Ак бабай. Давай учиться здороваться!",
@@ -71,6 +74,7 @@ export const ISLANDS: Island[] = [
     titleRu: "Ашамлыклар",
     description: "Чай, өчпочмак и всё самое вкусное.",
     guide: "Шүрәле",
+    voice: "almaz",
     greeting: {
       tt: "Исәнме! Мин Шүрәле. Бүген чәй эчәбез һәм ашарга өйрәнәбез!",
       ru: "Привет! Я Шурале. Сегодня пьём чай и учим еду!",
@@ -100,6 +104,7 @@ export const ISLANDS: Island[] = [
     titleRu: "Саннар",
     description: "Считаем до десяти и спрашиваем возраст.",
     guide: "Кыш бабай",
+    voice: "almaz",
     greeting: {
       tt: "Исәнме! Мин Кыш бабай. Саныйбыз: бер, ике, өч!",
       ru: "Привет! Я Кыш бабай. Считаем: раз, два, три!",
@@ -139,6 +144,7 @@ export const ISLANDS: Island[] = [
     titleRu: "Гаилә",
     description: "Рассказываем о близких и родных.",
     guide: "Әби",
+    voice: "alsu",
     greeting: {
       tt: "Исәнме, балам! Мин Әби. Гаиләбез белән танышабыз!",
       ru: "Здравствуй, дитя! Я Эби. Познакомимся с семьёй!",
@@ -167,6 +173,7 @@ export const ISLANDS: Island[] = [
     titleRu: "Хайваннар",
     description: "Бүре, аю һәм урман дуслары.",
     guide: "Бүре",
+    voice: "almaz",
     greeting: {
       tt: "У-у! Мин Бүре. Урман дуслары белән танышабыз!",
       ru: "У-у! Я Волк. Познакомимся с лесными друзьями!",
@@ -195,6 +202,7 @@ export const ISLANDS: Island[] = [
     titleRu: "Шәһәр",
     description: "Казан урамнары буйлап сәяхәт.",
     guide: "Салих абый",
+    voice: "almaz",
     greeting: {
       tt: "Исәнме! Мин Салих абый. Казан буйлап йөрибез!",
       ru: "Привет! Я Салих абый. Гуляем по Казани!",
@@ -223,6 +231,7 @@ export const ISLANDS: Island[] = [
     titleRu: "Табигать",
     description: "Идел, урман һәм болытлар турында.",
     guide: "Су анасы",
+    voice: "alsu",
     greeting: {
       tt: "Исәнме! Мин Су анасы. Табигатьне өйрәнәбез!",
       ru: "Привет! Я Су анасы. Изучаем природу!",
@@ -251,6 +260,7 @@ export const ISLANDS: Island[] = [
     titleRu: "Сәяхәт",
     description: "Юлга җыенабыз: юнәлешләр һәм транспорт.",
     guide: "Юлчы бабай",
+    voice: "almaz",
     greeting: {
       tt: "Исәнме! Мин Юлчы бабай. Юлга чыгабыз!",
       ru: "Привет! Я Юлчы бабай. Отправляемся в путь!",
@@ -279,6 +289,7 @@ export const ISLANDS: Island[] = [
     titleRu: "Төсләр",
     description: "Яшел урман, зәңгәр күк, алтын көн.",
     guide: "Алтын кош",
+    voice: "alsu",
     greeting: {
       tt: "Исәнме! Мин Алтын кош. Төсләр белән уйныйбыз!",
       ru: "Привет! Я Золотая птица. Играем с цветами!",
@@ -307,6 +318,7 @@ export const ISLANDS: Island[] = [
     titleRu: "Вакыт",
     description: "Көн, атна, ел — вакытны өйрәнәбез.",
     guide: "Ай бабай",
+    voice: "almaz",
     greeting: {
       tt: "Исәнме! Мин Ай бабай. Вакытны өйрәнәбез!",
       ru: "Привет! Я Ай бабай. Изучаем время!",

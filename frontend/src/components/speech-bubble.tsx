@@ -16,9 +16,11 @@ export interface Speech {
  */
 export function SpeechBubble({
   speech,
+  voice = "alsu",
   needsTap = false,
 }: {
   speech: Speech;
+  voice?: string;
   needsTap?: boolean;
 }) {
   return (
@@ -39,7 +41,7 @@ export function SpeechBubble({
           <p className="pt-1 text-sm text-[#9db8a8]">{speech.ru}</p>
         </div>
         <button
-          onClick={() => void ttsSpeak(speech.tt)}
+          onClick={() => void ttsSpeak(speech.tt, voice)}
           aria-label="Прослушать реплику"
           className={cn(
             "flex size-10 shrink-0 items-center justify-center rounded-full bg-[#f5c044]/15 text-[#f5c044] hover:bg-[#f5c044]/25",
