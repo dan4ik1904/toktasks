@@ -14,8 +14,8 @@ const TABS = [
 export function TabBar() {
   const pathname = usePathname();
   return (
-    <nav className="sticky bottom-0 z-10 border-t border-[#1c4d3a] bg-[#04150f]/90 backdrop-blur">
-      <div className="mx-auto grid w-full max-w-3xl grid-cols-3 px-4 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+    <nav className="fixed bottom-0 left-1/2 z-10 w-full max-w-md -translate-x-1/2 border-t border-[#1c4d3a] bg-[#04150f]/90 backdrop-blur">
+      <div className="grid grid-cols-3 px-4 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         {TABS.map((t) => {
           const active =
             t.href === "/" ? pathname === "/" : pathname.startsWith(t.href);
