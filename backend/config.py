@@ -17,15 +17,16 @@ class Settings(BaseSettings):
     llm_base_url: str = "https://api.openai.com/v1"
     llm_model: str = "gpt-4o-mini"
 
-    # Tatsoft: ключи и адреса задаются здесь. Без них STT/TTS отвечают
-    # 503, а перевод работает по встроенному словарю островов.
+    # Tatsoft — реальные публичные ручки (проверены живьём):
+    #   TTS:      GET {base}/listening/?speaker=alsu&text=... -> {wav_base64, sample_rate}
+    #   STT:      POST {stt}/listening/ files={file: wav} -> {text} | {r:[{response:[{text}]}]}
+    #   Перевод:  GET {translate}/translate?lang=0&text=... (0: ru->tt, 1: tt->ru)
+    # Ключ не требуется; токен оставлен на случай платного тарифа.
     tatsoft_api_key: str = ""
-    tatsoft_base_url: str = ""
-    # Пути на стороне Tatsoft — уточни по их документации и при
-    # необходимости переопредели через .env.
-    tatsoft_stt_path: str = "/stt"
-    tatsoft_tts_path: str = "/tts"
-    tatsoft_translate_path: str = "/translate"
+    tatsoft_tts_base: str = "https://tat-tts.api.translate.tatar"
+    tatsoft_tts_speaker: str = "alsu"
+    tatsoft_stt_base: str = "https://tat-asr.api.translate.tatar"
+    tatsoft_translate_base: str = "https://translate.tatar"
 
     progress_file: str = "data/progress.json"
 

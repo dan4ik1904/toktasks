@@ -1,11 +1,12 @@
 "use client";
 
 import { use } from "react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight, Volume2, X } from "lucide-react";
 import { getIsland, ISLANDS } from "@/data/islands";
+import { checkViaApi, sttRecognize, translateViaApi, ttsSpeak } from "@/lib/api";
 import { useProgress, XP_PER_LESSON } from "@/store/use-progress";
 import { IslandIcon } from "@/components/island-icon";
 import { TaskNumbers } from "@/components/task-numbers";
@@ -13,18 +14,7 @@ import { AIOrb } from "@/components/ai-orb";
 import { VoiceButton } from "@/components/voice-button";
 
 function speak(text: string) {
-  try {
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = "tt-RU";
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(u);
-  } catch {
-    /* озвучка недоступна */
-  }
-}
-
-function norm(s: string): string {
-  return s.toLowerCase().replace(/[^\p{L}\p{N} ]/gu, "").trim();
+  void ttsSpeak(text);
 }
 
 type SR = {
@@ -69,6 +59,11 @@ export default function IslandPage({
   const [showRu, setShowRu] = useState(false);
   const [listening, setListening] = useState(false);
   const [heard, setHeard] = useState("");
+  const [liveTt, setLiveTt] = useState<string | null>(null);
+  const [translating, setTranslating] = useState(false);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
 
   if (!island) notFound();
 
@@ -97,6 +92,7 @@ export default function IslandPage({
       setStep(step + 1);
       setPhase("task");
       setShowRu(false);
+      setLiveTt(null);
       setHeard("");
     }
   }
@@ -105,36 +101,58 @@ export default function IslandPage({
     setStep(i);
     setHeard("");
     setShowRu(false);
+    setLiveTt(null);
     setPhase(doneSteps[i] ? "success" : "task");
   }
 
-  function listen() {
-    if (listening) return;
+  async function handleTranscript(said: string) {
+    const ok = await checkViaApi(word.tt, said);
+    setHeard(said);
+    setPhase(ok ? "success" : "fail");
+    if (ok) setShowRu(true);
+  }
+
+  function stopRecording() {
+    try {
+      recorderRef.current?.stop();
+    } catch {
+      finishRecording();
+    }
+  }
+
+  function finishRecording() {
+    setListening(false);
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    const blob = new Blob(chunksRef.current, {
+      type: recorderRef.current?.mimeType || "audio/webm",
+    });
+    chunksRef.current = [];
+    if (blob.size === 0) {
+      setPhase("fail");
+      return;
+    }
+    sttRecognize(blob).then(handleTranscript).catch(() => {
+      // Tatsoft недоступен — пробуем Web Speech, иначе повтор за диктором.
+      webSpeechFallback();
+    });
+  }
+
+  function webSpeechFallback() {
     const rec = createRecognizer();
     if (!rec) {
-      // Распознавания нет — диктор произносит, ученик повторяет вслух.
       speak(word.tt);
       setShowRu(true);
       setPhase("success");
       return;
     }
-    setListening(true);
-    setHeard("");
     let got = false;
     rec.onresult = (e) => {
       got = true;
-      const said = e.results[0][0].transcript;
-      const ok =
-        norm(said).includes(norm(word.tt)) || norm(word.tt).includes(norm(said));
-      setHeard(said);
-      setPhase(ok ? "success" : "fail");
-      if (ok) setShowRu(true);
+      void handleTranscript(e.results[0][0].transcript);
     };
     rec.onerror = () => {
-      if (!got) {
-        setHeard("");
-        setPhase("fail");
-      }
+      if (!got) setPhase("fail");
     };
     rec.onend = () => setListening(false);
     try {
@@ -148,7 +166,51 @@ export default function IslandPage({
       }, 6000);
     } catch {
       setListening(false);
+      setPhase("fail");
     }
+  }
+
+  async function listen() {
+    if (listening) {
+      // Повторный тап — закончить запись досрочно.
+      stopRecording();
+      return;
+    }
+    // Основной путь: запись -> Tatsoft STT -> /api/check.
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const rec = new MediaRecorder(stream);
+      streamRef.current = stream;
+      recorderRef.current = rec;
+      chunksRef.current = [];
+      rec.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
+      rec.onstop = finishRecording;
+      rec.start();
+      setListening(true);
+      setHeard("");
+      window.setTimeout(() => {
+        if (recorderRef.current === rec) stopRecording();
+      }, 8000);
+    } catch {
+      // Нет микрофона — Web Speech или повтор за диктором.
+      setListening(true);
+      webSpeechFallback();
+    }
+  }
+
+  async function showTranslation() {
+    if (showRu) {
+      setShowRu(false);
+      return;
+    }
+    setShowRu(true);
+    if (liveTt !== null) return;
+    setTranslating(true);
+    const t = await translateViaApi(word.ru, "ru", "tt");
+    setTranslating(false);
+    if (t) setLiveTt(t);
   }
 
   if (phase === "finished") {
@@ -249,6 +311,14 @@ export default function IslandPage({
             <p className="pt-2 text-center text-sm text-[#9db8a8]">
               {word.ru}
               {word.transcription ? ` · ${word.transcription}` : ""}
+              {showRu && liveTt && liveTt !== word.tt && (
+                <span className="block pt-1 text-[#34d399]">
+                  Tatsoft: {liveTt}
+                </span>
+              )}
+              {showRu && translating && (
+                <span className="block pt-1">Перевожу через Tatsoft…</span>
+              )}
             </p>
           )}
         </section>
@@ -262,7 +332,7 @@ export default function IslandPage({
             </section>
             <div className="flex gap-2">
               <VoiceButton variant="mic" onClick={listen} listening={listening} />
-              <VoiceButton variant="translate" onClick={() => setShowRu((v) => !v)} />
+              <VoiceButton variant="translate" onClick={showTranslation} />
               <VoiceButton
                 variant="help"
                 onClick={() => {

@@ -1,13 +1,17 @@
-"""POST /api/translate — перевод ru<->tt.
+"""POST /api/translate — перевод ru<->tt через Tatsoft.
 
-Сначала Tatsoft, без ключей — встроенный словарь островов
-(точные совпадения слов, регистронезависимо).
+Tatsoft: GET /translate?lang=0&text=... (0: ru->tt, 1: tt->ru).
+Фраза -> plain text; отдельное слово -> XML, перевод берём из <mt>.
+При недоступности сети — встроенный словарь островов.
 """
+
+import re
+import xml.etree.ElementTree as ET
 
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from api._client import tatsoft_client, tatsoft_post
+from api._client import tatsoft_client, tatsoft_get
 from config import settings
 from island_logic import _norm, vocabulary
 
@@ -28,6 +32,16 @@ class TranslateResponse(BaseModel):
     source: str  # "tatsoft" | "offline"
 
 
+def _parse_tatsoft(body: str) -> str:
+    body = body.strip()
+    if body.startswith("<"):
+        root = ET.fromstring(body)
+        mt = root.findtext("mt")
+        if mt:
+            return mt.strip()
+    return body
+
+
 def offline_translate(text: str, src: str, dst: str) -> str | None:
     key = _norm(text)
     if src == "ru" and dst == "tt":
@@ -42,19 +56,16 @@ async def translate(req: TranslateRequest) -> TranslateResponse:
     text = req.text.strip()
     if not text:
         return TranslateResponse(translation="", source="offline")
-    if settings.tatsoft_base_url and settings.tatsoft_api_key:
-        async with tatsoft_client() as client:
-            resp = await tatsoft_post(
-                client,
-                settings.tatsoft_translate_path,
-                json={"text": text, "src": req.src, "dst": req.dst},
+    lang = "0" if (req.src == "ru" and req.dst == "tt") else "1"
+    try:
+        async with tatsoft_client(settings.tatsoft_translate_base) as client:
+            resp = await tatsoft_get(
+                client, "/translate", params={"lang": lang, "text": text}
             )
-        data = resp.json()
+        return TranslateResponse(translation=_parse_tatsoft(resp.text), source="tatsoft")
+    except Exception:
+        hit = offline_translate(text, req.src, req.dst)
         return TranslateResponse(
-            translation=str(data.get("translation", "")), source="tatsoft"
+            translation=hit or f"(офлайн: «{text}» нет в словаре островов)",
+            source="offline",
         )
-    hit = offline_translate(text, req.src, req.dst)
-    return TranslateResponse(
-        translation=hit or f"(офлайн: «{text}» нет в словаре островов)",
-        source="offline",
-    )

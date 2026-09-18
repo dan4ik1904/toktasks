@@ -57,7 +57,9 @@ python -m bot.main
 - `POST /api/check` — `{expected, heard}` → `{correct, distance}`
 - `POST /api/progress` — `{island_slug, lesson_id}` (+ заголовок `X-Telegram-Init-Data`)
 - `POST /api/stt` (аудио → текст), `POST /api/tts` (текст → аудио), `POST /api/translate`
-- Без `TATSOFT_*` в `.env`: STT/TTS отвечают 503, перевод — по словарю островов
+- Весь татарский идёт через публичный Tatsoft API хакатона
+  (`tat-tts.api.translate.tatar`, `tat-asr.api.translate.tatar`, `translate.tatar`);
+  без сети — фолбэки: словарь островов, Web Speech, speechSynthesis
 
 ## ИИ-помощник
 

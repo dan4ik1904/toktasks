@@ -1,10 +1,16 @@
-"""POST /api/tts — озвучка татарского текста (Tatsoft TTS)."""
+"""POST /api/tts — озвучка татарского текста (Tatsoft TTS).
 
-from fastapi import APIRouter
+Tatsoft: GET /listening/?speaker=alsu&text=... -> {wav_base64, sample_rate}.
+Отдаём фронту готовый audio/wav.
+"""
+
+import base64
+
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
 from pydantic import BaseModel
 
-from api._client import tatsoft_client, tatsoft_post
+from api._client import tatsoft_client, tatsoft_get
 from config import settings
 
 router = APIRouter()
@@ -12,21 +18,22 @@ router = APIRouter()
 
 class TtsRequest(BaseModel):
     text: str
-    voice: str = "tatar-female"
+    voice: str = ""
 
 
 @router.post("/api/tts")
 async def tts(req: TtsRequest) -> Response:
     text = req.text.strip()
     if not text:
-        from fastapi import HTTPException
-
         raise HTTPException(status_code=400, detail="пустой текст")
-    async with tatsoft_client() as client:
-        resp = await tatsoft_post(
-            client,
-            settings.tatsoft_tts_path,
-            json={"text": text, "voice": req.voice},
-        )
-    ctype = resp.headers.get("content-type", "audio/mpeg")
-    return Response(content=resp.content, media_type=ctype)
+    speaker = req.voice or settings.tatsoft_tts_speaker
+    params = {"speaker": speaker, "text": text}
+    if settings.tatsoft_api_key:
+        params["token"] = settings.tatsoft_api_key
+    async with tatsoft_client(settings.tatsoft_tts_base) as client:
+        resp = await tatsoft_get(client, "/listening/", params=params)
+    try:
+        wav = base64.b64decode(resp.json()["wav_base64"])
+    except Exception:
+        raise HTTPException(status_code=502, detail="неожиданный ответ Tatsoft TTS")
+    return Response(content=wav, media_type="audio/wav")
