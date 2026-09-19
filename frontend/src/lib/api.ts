@@ -464,3 +464,12 @@ export function extractSay(reply: string): string {
   if (m?.[1]) return m[1].trim();
   return splitSentences(cleanForTts(reply))[0] ?? reply;
 }
+
+/** Статистика платформы. */
+export async function fetchStatsApi(): Promise<Record<string, unknown> | null> {
+  try {
+    return (await get("/api/stats")).json() as Promise<Record<string, unknown>>;
+  } catch {
+    return null;
+  }
+}

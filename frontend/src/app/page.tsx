@@ -18,7 +18,6 @@ import { IslandCard } from "@/components/island-card";
 import { ISLANDS, islandProgress, islandStatus } from "@/data/islands";
 import { ttsSpeak } from "@/lib/api";
 import { useTelegram } from "@/providers/telegram-provider";
-import { useAuth } from "@/providers/auth-provider";
 import { levelOf, MAX_HEARTS, useProgress } from "@/store/use-progress";
 
 export default function Home() {
@@ -27,9 +26,8 @@ export default function Home() {
   const xp = useProgress((s) => s.xp);
   const streak = useProgress((s) => s.streak);
   const hearts = useProgress((s) => s.hearts);
-  const { user: tgUser } = useTelegram();
-  const { user: authUser } = useAuth();
-  const displayName = authUser?.display_name ?? tgUser?.first_name ?? "Айгуль";
+  const { user } = useTelegram();
+  const displayName = user?.first_name ?? "Айгуль";
   const { level, title: levelTitle, into } = levelOf(xp);
 
   const wordOfDay = useMemo(() => {

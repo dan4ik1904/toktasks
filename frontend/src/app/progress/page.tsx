@@ -5,7 +5,7 @@ import { Flame, Sparkles, Trophy } from "lucide-react";
 import { ISLANDS, islandProgress } from "@/data/islands";
 import { useProgress, XP_PER_LESSON } from "@/store/use-progress";
 import { IslandIcon } from "@/components/island-icon";
-import { fetchStatsApi } from "@/lib/auth";
+import { fetchStatsApi } from "@/lib/api";
 
 export default function ProgressPage() {
   const { xp, completedLessons } = useProgress();

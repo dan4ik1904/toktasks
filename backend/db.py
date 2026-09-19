@@ -1,15 +1,12 @@
-"""SQLite-хранилище: пользователи (TG ID), прогресс, сердца.
+"""SQLite-хранилище: пользователи (TG ID), прогресс, сердца, статистика.
 
 Таблицы:
   users(tg_id TEXT PK, first_name, username, xp, streak, last_day, hearts, hearts_at, created_at)
   completions(tg_id, lesson_id, created_at, PK(tg_id, lesson_id))
-  auth_users(id INTEGER PK, username TEXT UNIQUE, password_hash, display_name, created_at)
 """
 
 from __future__ import annotations
 
-import bcrypt
-import jwt
 import sqlite3
 import threading
 import time
@@ -18,7 +15,7 @@ from pathlib import Path
 from config import settings
 
 MAX_HEARTS = 5
-HEART_REGEN_SEC = 20 * 60  # +1 сердце раз в 20 минут
+HEART_REGEN_SEC = 20 * 60
 XP_PER_LESSON = 20
 
 _lock = threading.Lock()
@@ -51,19 +48,10 @@ def init_db() -> None:
               tg_id TEXT, lesson_id TEXT, created_at INTEGER DEFAULT 0,
               PRIMARY KEY (tg_id, lesson_id))"""
         )
-        c.execute(
-            """CREATE TABLE IF NOT EXISTS auth_users(
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              username TEXT UNIQUE NOT NULL,
-              password_hash TEXT NOT NULL,
-              display_name TEXT DEFAULT '',
-              created_at INTEGER DEFAULT 0)"""
-        )
 
 
 def _today() -> str:
     import datetime
-
     return datetime.date.today().isoformat()
 
 
@@ -132,7 +120,6 @@ def _touch_day(tg_id: str) -> None:
         if r["last_day"] == today:
             return
         import datetime
-
         y = (datetime.date.today() - datetime.timedelta(days=1)).isoformat()
         streak = r["streak"] + 1 if r["last_day"] == y else 1
         c.execute(
@@ -195,82 +182,18 @@ def leaderboard(limit: int = 20) -> list[dict]:
     ]
 
 
-# ── Auth helpers ──────────────────────────────────────────────
-
-
-def _hash_password(pw: str) -> str:
-    return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
-
-
-def _check_password(pw: str, hashed: str) -> bool:
-    return bcrypt.checkpw(pw.encode(), hashed.encode())
-
-
-def create_token(tg_id: str) -> str:
-    return jwt.encode(
-        {"sub": tg_id, "exp": int(time.time()) + settings.jwt_expire_hours * 3600},
-        settings.jwt_secret,
-        algorithm=settings.jwt_algorithm,
-    )
-
-
-def decode_token(token: str) -> str | None:
-    try:
-        payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
-        return payload.get("sub")
-    except Exception:
-        return None
-
-
-def auth_register(username: str, password: str, display_name: str = "") -> dict | None:
-    """Register a local user. Returns {id, username, display_name, tg_id} or None on duplicate."""
-    now = int(time.time())
-    hashed = _hash_password(password)
-    try:
-        with _lock, _conn() as c:
-            c.execute(
-                "INSERT INTO auth_users(username, password_hash, display_name, created_at) VALUES(?,?,?,?)",
-                (username, hashed, display_name or username, now),
-            )
-            auth_id = c.execute("SELECT last_insert_rowid()").fetchone()[0]
-            # Auto-create a linked user profile with tg_id = "auth:{id}"
-            tg_id = f"auth:{auth_id}"
-            c.execute(
-                """INSERT INTO users(tg_id, first_name, username, hearts, hearts_at, created_at)
-                   VALUES(?,?,?,?,?,?)
-                   ON CONFLICT(tg_id) DO UPDATE SET first_name=excluded.first_name""",
-                (tg_id, display_name or username, username, MAX_HEARTS, now, now),
-            )
-        return {"id": auth_id, "username": username, "display_name": display_name or username, "tg_id": f"auth:{auth_id}"}
-    except sqlite3.IntegrityError:
-        return None
-
-
-def auth_login(username: str, password: str) -> dict | None:
-    """Login. Returns {id, username, display_name, tg_id, token} or None."""
-    with _conn() as c:
-        r = c.execute("SELECT * FROM auth_users WHERE username=?", (username,)).fetchone()
-    if r is None:
-        return None
-    row = dict(r)
-    if not _check_password(password, row["password_hash"]):
-        return None
-    tg_id = f"auth:{row['id']}"
-    token = create_token(tg_id)
-    return {"id": row["id"], "username": row["username"], "display_name": row["display_name"], "tg_id": tg_id, "token": token}
-
-
 def stats() -> dict:
-    """Aggregate platform statistics."""
+    """Агрегированная статистика платформы."""
     with _conn() as c:
         total_users = c.execute("SELECT COUNT(*) FROM users").fetchone()[0]
         total_lessons = c.execute("SELECT COUNT(*) FROM completions").fetchone()[0]
         active_today = c.execute(
             "SELECT COUNT(*) FROM users WHERE last_day=?", (_today(),)
         ).fetchone()[0]
+        import datetime
+        week_ago = (datetime.date.today() - datetime.timedelta(days=7)).isoformat()
         active_week = c.execute(
-            "SELECT COUNT(*) FROM users WHERE last_day>=?",
-            ((__import__("datetime").date.today() - __import__("datetime").timedelta(days=7)).isoformat(),),
+            "SELECT COUNT(*) FROM users WHERE last_day>=?", (week_ago,)
         ).fetchone()[0]
         avg_xp = c.execute("SELECT AVG(xp) FROM users").fetchone()[0] or 0
         top_xp = c.execute("SELECT MAX(xp) FROM users").fetchone()[0] or 0
@@ -285,7 +208,7 @@ def stats() -> dict:
 
 
 def user_stats(tg_id: str) -> dict:
-    """Per-user statistics."""
+    """Статистика конкретного пользователя."""
     with _conn() as c:
         completions = c.execute(
             "SELECT lesson_id, created_at FROM completions WHERE tg_id=? ORDER BY created_at", (tg_id,)

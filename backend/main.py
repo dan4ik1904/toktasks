@@ -1,6 +1,6 @@
 """Точка входа: uvicorn main:app --reload (запуск из backend/)."""
 
-from fastapi import Depends, FastAPI, HTTPException, Header
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -61,7 +61,6 @@ class GradeRequest(BaseModel):
 
 @app.post("/api/grade")
 async def api_grade(req: GradeRequest) -> dict:
-    """Строгий судья: LLM (Ollama), иначе Левенштейн. Всегда 200 + source."""
     return await grade_pronunciation(req.expected, req.heard)
 
 
@@ -87,64 +86,6 @@ def _uid(user: dict | None, fallback: str) -> str:
     if user and user.get("id"):
         return str(user["id"])
     return fallback or "demo"
-
-
-async def get_current_user(authorization: str | None = Header(default=None)) -> str:
-    """Extract user ID from JWT Bearer token, or fallback to 'demo'."""
-    if authorization and authorization.startswith("Bearer "):
-        token = authorization[7:]
-        uid = store.decode_token(token)
-        if uid:
-            return uid
-    return "demo"
-
-
-class AuthRegisterRequest(BaseModel):
-    username: str
-    password: str
-    display_name: str = ""
-
-
-class AuthLoginRequest(BaseModel):
-    username: str
-    password: str
-
-
-@app.post("/api/auth/register")
-def api_auth_register(req: AuthRegisterRequest) -> dict:
-    result = store.auth_register(req.username, req.password, req.display_name)
-    if result is None:
-        raise HTTPException(status_code=409, detail="username already taken")
-    token = store.create_token(result["tg_id"])
-    profile = store.me(result["tg_id"])
-    return {"token": token, "user": result, "profile": profile}
-
-
-@app.post("/api/auth/login")
-def api_auth_login(req: AuthLoginRequest) -> dict:
-    result = store.auth_login(req.username, req.password)
-    if result is None:
-        raise HTTPException(status_code=401, detail="invalid credentials")
-    profile = store.me(result["tg_id"])
-    return {"token": result["token"], "user": result, "profile": profile}
-
-
-@app.get("/api/auth/me")
-def api_auth_me(user_id: str = Depends(get_current_user)) -> dict:
-    if user_id == "demo":
-        return {"user": None, "profile": store.me("demo")}
-    profile = store.me(user_id)
-    return {"user": {"tg_id": user_id}, "profile": profile}
-
-
-@app.get("/api/stats")
-def api_stats() -> dict:
-    return store.stats()
-
-
-@app.get("/api/user/stats")
-def api_user_stats(user_id: str = Depends(get_current_user)) -> dict:
-    return store.user_stats(user_id)
 
 
 @app.post("/api/register")
@@ -206,3 +147,13 @@ async def assistant_chat(req: ChatRequest) -> ChatResponse:
     hist = [{"role": h.role, "text": h.text} for h in req.history]
     ans = await ask_assistant(req.message, hist)
     return ChatResponse(reply=ans["reply"], say=ans.get("say", ""), lang=ans.get("lang", "ru"))
+
+
+@app.get("/api/stats")
+def api_stats() -> dict:
+    return store.stats()
+
+
+@app.get("/api/user/stats")
+def api_user_stats(user_id: str = "demo", user: dict | None = Depends(telegram_user)) -> dict:
+    return store.user_stats(_uid(user, user_id))
