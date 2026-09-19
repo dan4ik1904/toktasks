@@ -18,9 +18,54 @@ const OUTFITS = [
   { id: "platok", name: "Платок", price: 80, icon: "🧣" },
 ];
 
+function audioBufferToWav(buffer: AudioBuffer): Blob {
+  const numChannels = buffer.numberOfChannels;
+  const sampleRate = buffer.sampleRate;
+  const bitDepth = 16;
+  const bytesPerSample = bitDepth / 8;
+  const blockAlign = numChannels * bytesPerSample;
+  const dataLength = buffer.length * blockAlign;
+  const headerLength = 44;
+  const totalLength = headerLength + dataLength;
+  const arrayBuffer = new ArrayBuffer(totalLength);
+  const view = new DataView(arrayBuffer);
+
+  function writeString(offset: number, str: string) {
+    for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+  }
+
+  writeString(0, "RIFF");
+  view.setUint32(4, totalLength - 8, true);
+  writeString(8, "WAVE");
+  writeString(12, "fmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, numChannels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * blockAlign, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, bitDepth, true);
+  writeString(36, "data");
+  view.setUint32(40, dataLength, true);
+
+  const channels: Float32Array[] = [];
+  for (let i = 0; i < numChannels; i++) channels.push(buffer.getChannelData(i));
+
+  let offset = 44;
+  for (let i = 0; i < buffer.length; i++) {
+    for (let ch = 0; ch < numChannels; ch++) {
+      const sample = Math.max(-1, Math.min(1, channels[ch][i]));
+      view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
+      offset += 2;
+    }
+  }
+
+  return new Blob([arrayBuffer], { type: "audio/wav" });
+}
+
 export default function CatPage() {
   const store = useStore();
-  const { cat, points, feedCat, dressCat, playWithCat, spendPoints, buyShopItem, shopPurchases } = store;
+  const { cat, feedCat, dressCat, playWithCat, spendPoints, buyShopItem, shopPurchases } = store;
   const [tab, setTab] = useState<"chat" | "feed" | "play" | "dress">("chat");
   const [chatMsg, setChatMsg] = useState("");
   const [chatHistory, setChatHistory] = useState<{ role: string; text: string }[]>([]);
@@ -29,7 +74,11 @@ export default function CatPage() {
   const [isThinking, setIsThinking] = useState(false);
   const [subtitles, setSubtitles] = useState<string>("");
   const [catMood, setCatMood] = useState<string>("happy");
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const sourceNodeRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const processorRef = useRef<ScriptProcessorNode | null>(null);
+  const audioChunksRef = useRef<Float32Array[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const showFloat = (emoji: string) => {
@@ -69,57 +118,111 @@ export default function CatPage() {
         audioRef.current = new Audio(url);
         audioRef.current.play().catch(() => {});
       }
-    } catch {}
+    } catch {
+      console.error("TTS failed");
+    }
   };
 
   const handleVoiceChat = useCallback(async () => {
     if (isRecording) {
-      mediaRecorderRef.current?.stop();
+      if (processorRef.current) {
+        processorRef.current.disconnect();
+        processorRef.current = null;
+      }
+      if (sourceNodeRef.current) {
+        sourceNodeRef.current.disconnect();
+        sourceNodeRef.current = null;
+      }
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach((t) => t.stop());
+        mediaStreamRef.current = null;
+      }
+      if (audioContextRef.current) {
+        const ctx = audioContextRef.current;
+        audioContextRef.current = null;
+        await ctx.close();
+      }
+
       setIsRecording(false);
+      setIsThinking(true);
+      setSubtitles("Обрабатываю...");
+
+      if (audioChunksRef.current.length === 0) {
+        setIsThinking(false);
+        setSubtitles("Не записалось голоса, попробуй ещё раз");
+        return;
+      }
+
+      const sampleRate = 16000;
+      const length = audioChunksRef.current.reduce((acc, c) => acc + c.length, 0);
+      const merged = new Float32Array(length);
+      let off = 0;
+      for (const chunk of audioChunksRef.current) {
+        merged.set(chunk, off);
+        off += chunk.length;
+      }
+
+      const tmpCtx = new AudioContext({ sampleRate });
+      const buffer = tmpCtx.createBuffer(1, length, sampleRate);
+      buffer.getChannelData(0).set(merged);
+      await tmpCtx.close();
+
+      const wavBlob = audioBufferToWav(buffer);
+
+      const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const form = new FormData();
+      form.append("audio", wavBlob, "voice.wav");
+
+      try {
+        const res = await fetch(base + "/api/cat/chat", { method: "POST", body: form });
+        const data = await res.json();
+        setSubtitles(data.reply || data.say || "Мяв?");
+        setCatMood(data.mood || "happy");
+        setChatHistory((h) => [
+          ...h,
+          { role: "user", text: data.text || "🎤 Голос" },
+          { role: "assistant", text: data.reply },
+        ]);
+        if (data.say) {
+          setTimeout(() => playCatTts(data.say), 300);
+        }
+      } catch (e) {
+        console.error("Cat chat error:", e);
+        setSubtitles("Мяв! Ошибка соединения");
+      }
+      setIsThinking(false);
+      audioChunksRef.current = [];
       return;
     }
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
-      const chunks: Blob[] = [];
-      recorder.ondataavailable = (e) => chunks.push(e.data);
-      recorder.onstop = async () => {
-        stream.getTracks().forEach((t) => t.stop());
-        const blob = new Blob(chunks, { type: "audio/webm" });
-        setIsThinking(true);
-        setSubtitles("Распознаю речь...");
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { sampleRate: 16000, channelCount: 1, echoCancellation: true, noiseSuppression: true },
+      });
 
-        const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-        const form = new FormData();
-        form.append("audio", blob, "voice.webm");
+      const audioCtx = new AudioContext({ sampleRate: 16000 });
+      const source = audioCtx.createMediaStreamSource(stream);
+      const processor = audioCtx.createScriptProcessor(4096, 1, 1);
 
-        try {
-          const res = await fetch(base + "/api/cat/chat", { method: "POST", body: form });
-          const data = await res.json();
-          setSubtitles(data.reply || data.say || "Мяв?");
-          setCatMood(data.mood || "happy");
-          setChatHistory((h) => [
-            ...h,
-            { role: "user", text: data.text || "🎤 Голосовое сообщение" },
-            { role: "assistant", text: data.reply },
-          ]);
-          if (data.say) {
-            playCatTts(data.say);
-          }
-        } catch {
-          setSubtitles("Мяв! Ошибка соединения 🐱");
-        }
-        setIsThinking(false);
+      audioChunksRef.current = [];
+      audioContextRef.current = audioCtx;
+      mediaStreamRef.current = stream;
+      sourceNodeRef.current = source;
+      processorRef.current = processor;
+
+      processor.onaudioprocess = (e) => {
+        const data = e.inputBuffer.getChannelData(0);
+        audioChunksRef.current.push(new Float32Array(data));
       };
 
-      mediaRecorderRef.current = recorder;
-      recorder.start();
+      source.connect(processor);
+      processor.connect(audioCtx.destination);
+
       setIsRecording(true);
       setSubtitles("🎤 Слушаю... Нажми чтобы остановить");
       setCatMood("thinking");
     } catch {
-      setSubtitles("Микрофон недоступен 😿");
+      setSubtitles("Микрофон недоступен");
     }
   }, [isRecording]);
 
@@ -140,10 +243,10 @@ export default function CatPage() {
       const data = await res.json();
       setChatHistory((h) => [...h, { role: "assistant", text: data.reply }]);
       if (data.say) {
-        playCatTts(data.say);
+        setTimeout(() => playCatTts(data.say), 300);
       }
     } catch {
-      setChatHistory((h) => [...h, { role: "assistant", text: "Мяв! Не могу ответить 🐱" }]);
+      setChatHistory((h) => [...h, { role: "assistant", text: "Мяв! Не могу ответить" }]);
     }
     setIsThinking(false);
   };
@@ -170,7 +273,7 @@ export default function CatPage() {
         }}>
           {isThinking ? (
             <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <span className="cat-blink" style={{ display: "inline-block", animation: "cat-bounce 1s infinite" }}>😺</span>
+              <span style={{ display: "inline-block", animation: "cat-bounce 1s infinite" }}>😺</span>
               {subtitles}
             </span>
           ) : subtitles}
@@ -182,7 +285,7 @@ export default function CatPage() {
           <button key={t} onClick={() => setTab(t)}
             className={"btn " + (tab === t ? "btn-primary" : "btn-ghost")}
             style={{ flex: 1, fontSize: "0.75rem", padding: "0.5rem" }}>
-            {t === "chat" ? "💬 Чат" : t === "feed" ? "🍲 Кормить" : t === "play" ? "🎾 Играть" : "👗 Одеть"}
+            {t === "chat" ? "Чат" : t === "feed" ? "Кормить" : t === "play" ? "Играть" : "Одеть"}
           </button>
         ))}
       </div>
@@ -193,7 +296,7 @@ export default function CatPage() {
             <div style={{ maxHeight: 200, overflowY: "auto", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
               {chatHistory.length === 0 && (
                 <p style={{ color: "var(--fg-muted)", fontSize: "0.8rem", textAlign: "center" }}>
-                  Поговори со мной на татарском! 🐱
+                  Поговори со мной на татарском!
                 </p>
               )}
               {chatHistory.map((msg, i) => (
@@ -210,7 +313,7 @@ export default function CatPage() {
                   alignSelf: "flex-start", padding: "0.5rem 0.75rem", borderRadius: "1rem",
                   background: "var(--surface-2)", color: "var(--fg-muted)", fontSize: "0.8rem",
                 }}>
-                  <span className="cat-blink" style={{ animation: "cat-bounce 1s infinite" }}>😺</span> думает...
+                  думает...
                 </div>
               )}
             </div>
@@ -248,7 +351,7 @@ export default function CatPage() {
         {tab === "play" && (
           <div style={{ textAlign: "center", padding: "1rem" }}>
             <p style={{ marginBottom: 12, color: "var(--fg-muted)" }}>Поиграй с котом!</p>
-            <button className="btn btn-gold" onClick={handlePlay}>🎾 Играть с котом</button>
+            <button className="btn btn-gold" onClick={handlePlay}>Играть с котом</button>
           </div>
         )}
 
@@ -263,7 +366,7 @@ export default function CatPage() {
                   style={{ justifyContent: "space-between", padding: "0.75rem" }}>
                   <span>{outfit.icon} {outfit.name}</span>
                   <span style={{ fontSize: "0.75rem", color: owned ? "var(--success)" : "var(--gold)" }}>
-                    {owned ? (active ? "Надето ✓" : "Надеть") : outfit.price + " 💰"}
+                    {owned ? (active ? "Надето" : "Надеть") : outfit.price + " поинтов"}
                   </span>
                 </button>
               );
