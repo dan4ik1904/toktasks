@@ -133,8 +133,11 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     reply: str
+    say: str = ""
+    lang: str = "ru"
 
 
 @app.post("/api/assistant/chat", response_model=ChatResponse)
 async def assistant_chat(req: ChatRequest) -> ChatResponse:
-    return ChatResponse(reply=await ask_assistant(req.message))
+    ans = await ask_assistant(req.message)
+    return ChatResponse(reply=ans["reply"], say=ans.get("say", ""), lang=ans.get("lang", "ru"))

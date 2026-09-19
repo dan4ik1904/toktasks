@@ -16,38 +16,38 @@ export default function ProgressPage() {
       <h1 className="text-2xl font-bold">Прогресс</h1>
 
       <section className="grid grid-cols-3 gap-2">
-        <div className="rounded-2xl border border-[#3a3370] bg-[#1d1747]/80 p-3 text-center">
-          <Sparkles className="mx-auto size-5 text-[#ffc800]" aria-hidden />
+        <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-3 text-center">
+          <Sparkles className="mx-auto size-5 text-[var(--gold)]" aria-hidden />
           <p className="pt-1 text-xl font-bold tabular-nums">{xp}</p>
-          <p className="text-xs text-[#a7a2c9]">XP</p>
+          <p className="text-xs text-[var(--muted)]">XP</p>
         </div>
-        <div className="rounded-2xl border border-[#3a3370] bg-[#1d1747]/80 p-3 text-center">
-          <Trophy className="mx-auto size-5 text-[#ffc800]" aria-hidden />
+        <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-3 text-center">
+          <Trophy className="mx-auto size-5 text-[var(--gold)]" aria-hidden />
           <p className="pt-1 text-xl font-bold tabular-nums">
             {completedLessons.length}/{totalLessons}
           </p>
-          <p className="text-xs text-[#a7a2c9]">уроков</p>
+          <p className="text-xs text-[var(--muted)]">уроков</p>
         </div>
-        <div className="rounded-2xl border border-[#3a3370] bg-[#1d1747]/80 p-3 text-center">
-          <Flame className="mx-auto size-5 text-[#58cc02]" aria-hidden />
+        <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-3 text-center">
+          <Flame className="mx-auto size-5 text-[var(--accent)]" aria-hidden />
           <p className="pt-1 text-xl font-bold tabular-nums">
             {Math.floor(xp / XP_PER_LESSON)}
           </p>
-          <p className="text-xs text-[#a7a2c9]">наград</p>
+          <p className="text-xs text-[var(--muted)]">наград</p>
         </div>
       </section>
 
-      <section className="rounded-2xl border border-[#3a3370] bg-[#1d1747]/80 p-4">
+      <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
         <p className="text-sm">Всего пройдено: {overall}%</p>
         <div
-          className="mt-2 h-2.5 overflow-hidden rounded-full bg-white/10"
+          className="mt-2 h-2.5 overflow-hidden rounded-full bg-[var(--track)]"
           role="progressbar"
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={overall}
         >
           <div
-            className="h-full rounded-full bg-gradient-to-r from-[#58cc02] to-[#ffc800]"
+            className="h-full rounded-full bg-gradient-to-r from-[var(--accent)] to-[var(--gold)]"
             style={{ width: `${overall}%` }}
           />
         </div>
@@ -59,21 +59,21 @@ export default function ProgressPage() {
           return (
             <div
               key={island.slug}
-              className="flex items-center gap-3 rounded-2xl border border-[#3a3370] bg-[#1d1747]/80 p-3"
+              className="flex items-center gap-3 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-3"
             >
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white/5 text-[#ffc800]">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[var(--gold-soft)] text-[var(--gold)]">
                 <IslandIcon icon={island.icon} className="size-5" />
               </span>
               <div className="flex-1">
                 <p className="text-sm font-semibold">{island.title}</p>
-                <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/10">
+                <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-[var(--track)]">
                   <div
-                    className="h-full rounded-full bg-[#58cc02]"
+                    className="h-full rounded-full bg-[var(--accent)]"
                     style={{ width: `${p.pct}%` }}
                   />
                 </div>
               </div>
-              <span className="text-xs text-[#a7a2c9] tabular-nums">
+              <span className="text-xs text-[var(--muted)] tabular-nums">
                 {p.done}/{p.total}
               </span>
             </div>

@@ -199,7 +199,7 @@ export default function IslandPage({
       particleCount: 130,
       spread: 75,
       origin: { y: 0.3 },
-      colors: ["#ffc800", "#58cc02", "#ffffff"],
+      colors: ["#a87b2f", "#176b5b", "#a34f3d", "#ffffff"],
     });
   }, [phase]);
 
@@ -379,28 +379,28 @@ export default function IslandPage({
   if (phase === "finished") {
     return (
       <main className="flex w-full flex-1 flex-col items-center gap-4 px-4 pt-10 pb-6 text-center">
-        <span className="flex size-20 items-center justify-center rounded-full bg-[#ffc800]/15 text-4xl">
+        <span className="flex size-20 items-center justify-center rounded-full bg-[var(--gold-soft)] text-4xl">
           <span role="img" aria-label="Праздник">
             🎉
           </span>
         </span>
         <h1 className="text-2xl font-bold">Остров пройден!</h1>
-        <p className="text-[#a7a2c9]">
+        <p className="text-[var(--muted)]">
           {lesson.title} · {island.guide} гордится тобой.
         </p>
-        <p className="max-w-xs text-sm text-[#a7a2c9]">
+        <p className="max-w-xs text-sm text-[var(--muted)]">
           «{FAREWELL.tt}» — {FAREWELL.ru}
         </p>
-        <p className="rounded-full bg-[#ffc800]/15 px-4 py-1.5 font-bold text-[#ffc800]">
+        <p className="rounded-full bg-[var(--gold-soft)] px-4 py-1.5 font-bold text-[var(--gold)]">
           +{XP_PER_LESSON} XP
         </p>
         <Link
           href="/"
-          className="mt-2 inline-flex h-12 items-center gap-2 rounded-2xl bg-[#7c5cff] px-6 font-semibold text-white"
+          className="mt-2 inline-flex h-12 items-center gap-2 rounded-2xl bg-[var(--accent)] px-6 font-semibold text-white"
         >
           К островам <ArrowRight className="size-4" aria-hidden />
         </Link>
-        <Link href="/assistant" className="text-sm text-[#58cc02]">
+        <Link href="/assistant" className="text-sm text-[var(--accent)]">
           Спросить Ярдәмче
         </Link>
       </main>
@@ -410,17 +410,17 @@ export default function IslandPage({
   return (
     <>
       {/* 1. Хедер (fixed): Назад, название, выход */}
-      <header className="fixed top-0 left-1/2 z-10 w-full max-w-md -translate-x-1/2 border-b border-[#3a3370] bg-[#120e2b]/90 backdrop-blur">
+      <header className="fixed top-0 left-1/2 z-10 w-full max-w-md -translate-x-1/2 border-b border-[var(--line)] bg-[color-mix(in_srgb,var(--surface)_90%,transparent)] backdrop-blur">
         <div className="flex h-14 items-center justify-between px-4">
           <Link
             href="/"
             aria-label="Назад к островам"
-            className="flex size-10 items-center justify-center rounded-full hover:bg-white/5"
+            className="flex size-10 items-center justify-center rounded-full hover:bg-[var(--surface-2)]"
           >
             <ArrowLeft className="size-5" aria-hidden />
           </Link>
           <div className="flex items-center gap-2 font-semibold">
-            <IslandIcon icon={island.icon} className="size-5 text-[#ffc800]" />
+            <IslandIcon icon={island.icon} className="size-5 text-[var(--gold)]" />
             {island.title}
             <span
               className="inline-flex items-center gap-1 rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-bold text-red-300"
@@ -433,7 +433,7 @@ export default function IslandPage({
           <Link
             href="/"
             aria-label="Выйти из урока"
-            className="flex size-10 items-center justify-center rounded-full hover:bg-white/5"
+            className="flex size-10 items-center justify-center rounded-full hover:bg-[var(--surface-2)]"
           >
             <X className="size-5" aria-hidden />
           </Link>
@@ -452,13 +452,13 @@ export default function IslandPage({
 
       {/* Нет сердец — пауза (дуолинго-стайл). Финиш уже вернулся раньше. */}
       {hearts <= 0 && (
-        <div className="fixed inset-0 z-20 mx-auto flex w-full max-w-md items-center justify-center bg-[#120e2b]/95 p-6">
+        <div className="fixed inset-0 z-20 mx-auto flex w-full max-w-md items-center justify-center bg-[color-mix(in_srgb,var(--bg)_95%,transparent)] p-6">
           <div className="flex flex-col items-center gap-3 text-center">
             <span className="text-6xl" role="img" aria-label="Разбитое сердце">
               💔
             </span>
             <h2 className="text-xl font-bold">Сердца закончились!</h2>
-            <p className="text-sm text-[#a7a2c9]">
+            <p className="text-sm text-[var(--muted)]">
               Хранитель ждёт: сердца возвращаются со временем
               или на новом дне — либо пополни сейчас (демо).
             </p>
@@ -472,7 +472,7 @@ export default function IslandPage({
             >
               Пополнить ❤️×{MAX_HEARTS}
             </button>
-            <Link href="/" className="text-sm text-[#58cc02]">
+            <Link href="/" className="text-sm text-[var(--accent)]">
               К островам
             </Link>
           </div>
@@ -491,12 +491,12 @@ export default function IslandPage({
         {speech && <SpeechBubble speech={speech} voice={island.voice} needsTap={needsTap} />}
 
         {/* 4. Речь ИИ: татарский + перевод */}
-        <section className="rounded-2xl border border-[#3a3370] bg-[#1d1747]/80 p-4">
+        <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
           <div className="flex items-center justify-between gap-2">
             <button
               onClick={() => speak(word.tt, voice)}
               aria-label="Прослушать фразу"
-              className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white/5 text-xl hover:bg-white/10"
+              className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--surface-2)] text-xl hover:bg-[var(--track)]"
             >
               <span role="img" aria-hidden>
                 🔊
@@ -508,7 +508,7 @@ export default function IslandPage({
             <button
               onClick={() => speak(word.tt, voice)}
               aria-label="Прослушать фразу"
-              className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white/5 text-xl hover:bg-white/10"
+              className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--surface-2)] text-xl hover:bg-[var(--track)]"
             >
               <span role="img" aria-hidden>
                 🔊
@@ -516,11 +516,11 @@ export default function IslandPage({
             </button>
           </div>
           {(showRu || phase !== "task") && (
-            <p className="pt-2 text-center text-sm text-[#a7a2c9]">
+            <p className="pt-2 text-center text-sm text-[var(--muted)]">
               {word.ru}
               {word.transcription ? ` · ${word.transcription}` : ""}
               {showRu && liveTt && liveTt !== word.tt && (
-                <span className="block pt-1 text-[#58cc02]">
+                <span className="block pt-1 text-[var(--accent)]">
                   Tatsoft: {liveTt}
                 </span>
               )}
@@ -534,11 +534,11 @@ export default function IslandPage({
         {/* 5–7. Задание / кнопки / фидбек */}
         {phase === "task" && taskType === "quiz" && (
           <>
-            <section className="rounded-2xl border border-[#3a3370] bg-[#1d1747]/80 p-4 text-center">
+            <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 text-center">
               <p className="font-semibold">Выбери перевод:</p>
               <button
                 onClick={() => speak(word.tt, voice)}
-                className="pt-1 text-2xl font-bold text-[#ffc800]"
+                className="pt-1 text-2xl font-bold text-[var(--gold)]"
                 aria-label="Прослушать слово"
               >
                 «{word.tt}»
@@ -552,7 +552,7 @@ export default function IslandPage({
                   className={
                     o.tt === wrongPick
                       ? "h-12 rounded-xl border border-red-400/60 bg-red-500/10 text-sm line-through opacity-70"
-                      : "h-12 rounded-xl border border-[#3a3370] bg-[#1d1747]/80 text-sm hover:border-[#58cc02]"
+                      : "h-12 rounded-xl border border-[var(--line)] bg-[var(--surface)] text-sm hover:border-[var(--accent)]"
                   }
                 >
                   {o.ru}
@@ -564,9 +564,9 @@ export default function IslandPage({
 
         {phase === "task" && taskType === "repeat" && (
           <>
-            <section className="rounded-2xl border border-[#3a3370] bg-[#1d1747]/80 p-4 text-center">
+            <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 text-center">
               <p className="font-semibold">Скажи по-татарски:</p>
-              <p className="pt-1 text-sm text-[#a7a2c9]">«{word.ru}»</p>
+              <p className="pt-1 text-sm text-[var(--muted)]">«{word.ru}»</p>
             </section>
             <div className="flex gap-2">
               <VoiceButton variant="mic" onClick={listen} listening={listening} />
@@ -583,10 +583,10 @@ export default function IslandPage({
         )}
 
         {phase === "success" && (
-          <section className="flex items-center justify-between gap-2 rounded-2xl border border-[#58cc02]/60 bg-[#7c5cff]/20 p-3 pl-4">
+          <section className="flex items-center justify-between gap-2 rounded-2xl border border-[var(--accent)]/60 bg-[var(--accent-soft)] p-3 pl-4">
             <p className="flex items-center gap-2">
               <span
-                className="flex size-8 items-center justify-center rounded-full border-2 border-[#58cc02] text-lg"
+                className="flex size-8 items-center justify-center rounded-full border-2 border-[var(--accent)] text-lg"
                 role="img"
                 aria-label="Дөрес"
               >
@@ -594,14 +594,14 @@ export default function IslandPage({
               </span>
               <span>
                 <span className="block font-semibold">Дөрес! Бик шәп!</span>
-                <span className="block text-xs font-normal text-[#a7a2c9]">
+                <span className="block text-xs font-normal text-[var(--muted)]">
                   Правильно! Очень круто!
                 </span>
               </span>
             </p>
             <button
               onClick={next}
-              className="inline-flex h-11 items-center gap-1.5 rounded-xl bg-[#7c5cff] px-4 text-sm font-semibold text-white"
+              className="inline-flex h-11 items-center gap-1.5 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-white"
             >
               Дальше <ArrowRight className="size-4" aria-hidden />
             </button>
@@ -617,13 +617,13 @@ export default function IslandPage({
               <span>
                 <span className="block font-semibold">Юк әле{gradeHint ? "!" : ""}</span>
                 {gradeHint && (
-                  <span className="block text-xs font-normal text-[#a7a2c9]">
+                  <span className="block text-xs font-normal text-[var(--muted)]">
                     {gradeHint}
                   </span>
                 )}
               </span>
             </p>
-            <p className="text-sm text-[#a7a2c9]">
+            <p className="text-sm text-[var(--muted)]">
               {heard ? (
                 <>
                   Услышал: «{heard}». Нужно: «{word.tt}»
@@ -634,7 +634,7 @@ export default function IslandPage({
             </p>
             {fails >= 2 && gradeSyllables.length > 0 && (
               <div>
-                <p className="pb-1.5 text-xs text-[#a7a2c9]">
+                <p className="pb-1.5 text-xs text-[var(--muted)]">
                   Скажи по слогам (нажми, чтобы услышать):
                 </p>
                 <div className="flex flex-wrap gap-1.5">
@@ -642,7 +642,7 @@ export default function IslandPage({
                     <button
                       key={`${s}-${i}`}
                       onClick={() => speak(s, voice)}
-                      className="rounded-lg border border-[#ffc800]/50 bg-[#ffc800]/10 px-2.5 py-1 text-sm font-semibold text-[#ffc800]"
+                      className="rounded-lg border border-[var(--gold)]/50 bg-[var(--gold-soft)] px-2.5 py-1 text-sm font-semibold text-[var(--gold)]"
                     >
                       {s}
                     </button>
@@ -653,21 +653,21 @@ export default function IslandPage({
             <div className="flex gap-2">
               <button
                 onClick={() => setPhase("task")}
-                className="h-11 flex-1 rounded-xl bg-[#7c5cff] text-sm font-semibold text-white"
+                className="h-11 flex-1 rounded-xl bg-[var(--accent)] text-sm font-semibold text-white"
               >
                 Ещё раз
               </button>
               {fails >= 3 ? (
                 <button
                   onClick={next}
-                  className="h-11 flex-1 rounded-xl border border-[#3a3370] text-sm"
+                  className="h-11 flex-1 rounded-xl border border-[var(--line)] text-sm"
                 >
                   Пропустить
                 </button>
               ) : (
                 <button
                   onClick={() => speak(word.tt, voice)}
-                  className="h-11 flex-1 rounded-xl border border-[#3a3370] text-sm"
+                  className="h-11 flex-1 rounded-xl border border-[var(--line)] text-sm"
                 >
                   🔊 Послушать
                 </button>
@@ -680,17 +680,17 @@ export default function IslandPage({
         <div className="mt-auto pt-2">
           <p className="pb-2 text-sm">
             Задание {Math.min(step + 1, words.length)} из {words.length}
-            <span className="text-[#a7a2c9]"> · остров {islandIndex + 1}</span>
+            <span className="text-[var(--muted)]"> · остров {islandIndex + 1}</span>
           </p>
           <div
-            className="h-2.5 overflow-hidden rounded-full bg-white/10"
+            className="h-2.5 overflow-hidden rounded-full bg-[var(--track)]"
             role="progressbar"
             aria-valuemin={0}
             aria-valuemax={words.length}
             aria-valuenow={phase === "task" ? step : step + 1}
           >
             <div
-              className="h-full rounded-full bg-gradient-to-r from-[#58cc02] to-[#ffc800] transition-all"
+              className="h-full rounded-full bg-gradient-to-r from-[var(--accent)] to-[var(--gold)] transition-all"
               style={{
                 width: `${((phase === "task" ? step : step + 1) / words.length) * 100}%`,
               }}

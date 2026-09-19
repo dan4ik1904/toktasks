@@ -31,13 +31,13 @@ export default function DictionaryPage() {
     <main className="flex w-full flex-1 flex-col gap-3 px-4 pt-4 pb-6">
       <h1 className="text-2xl font-bold">Словарь</h1>
 
-      <label className="flex h-11 items-center gap-2 rounded-xl border border-[#3a3370] bg-[#1d1747]/80 px-3">
-        <Search className="size-4 shrink-0 text-[#a7a2c9]" aria-hidden />
+      <label className="flex h-11 items-center gap-2 rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3">
+        <Search className="size-4 shrink-0 text-[var(--muted)]" aria-hidden />
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Найти слово…"
-          className="w-full bg-transparent text-sm outline-none placeholder:text-[#a7a2c9]"
+          className="w-full bg-transparent text-sm outline-none placeholder:text-[var(--muted)]"
         />
       </label>
 
@@ -46,7 +46,9 @@ export default function DictionaryPage() {
           onClick={() => setIsland("all")}
           className={cn(
             "shrink-0 rounded-full px-3 py-1.5 text-xs",
-            island === "all" ? "bg-[#ffc800] font-bold text-[#120e2b]" : "border border-[#3a3370]",
+            island === "all"
+              ? "bg-[var(--gold)] font-bold text-[var(--ink)]"
+              : "border border-[var(--line)]",
           )}
         >
           Все
@@ -57,7 +59,9 @@ export default function DictionaryPage() {
             onClick={() => setIsland(i.slug)}
             className={cn(
               "shrink-0 rounded-full px-3 py-1.5 text-xs",
-              island === i.slug ? "bg-[#ffc800] font-bold text-[#120e2b]" : "border border-[#3a3370]",
+              island === i.slug
+                ? "bg-[var(--gold)] font-bold text-[var(--ink)]"
+                : "border border-[var(--line)]",
             )}
           >
             {i.title}
@@ -65,24 +69,24 @@ export default function DictionaryPage() {
         ))}
       </div>
 
-      <p className="text-xs text-[#a7a2c9] tabular-nums">Слов: {rows.length}</p>
+      <p className="text-xs text-[var(--muted)] tabular-nums">Слов: {rows.length}</p>
 
       <ul className="flex flex-col gap-1.5">
         {rows.map((r) => (
           <li
             key={`${r.slug}-${r.tt}`}
-            className="flex items-center justify-between gap-3 rounded-xl border border-[#3a3370] bg-[#1d1747]/80 px-3 py-2.5"
+            className="flex items-center justify-between gap-3 rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2.5"
           >
             <div>
               <p className="font-semibold">{r.tt}</p>
-              <p className="text-xs text-[#a7a2c9]">
+              <p className="text-xs text-[var(--muted)]">
                 {r.ru} · {r.island}
               </p>
             </div>
             <button
               onClick={() => void ttsSpeak(r.tt)}
               aria-label={`Озвучить: ${r.tt}`}
-              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white/5 text-[#58cc02] hover:bg-white/10"
+              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[var(--accent)] hover:brightness-95"
             >
               <Volume2 className="size-4" aria-hidden />
             </button>

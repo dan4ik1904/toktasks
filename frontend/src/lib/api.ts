@@ -383,10 +383,28 @@ export async function refillHeartsApi(userId: string): Promise<number | null> {
   }
 }
 
+/** Ответ Ярдәмче: текст для показа + чистая татарская фраза для обязательной озвучки. */
+export interface AssistantReply {
+  reply: string;
+  say: string;
+  lang: string;
+}
+
 /** Вопрос Ярдәмче: сначала бэкенд, иначе исключение (фолбэк у вызывающего). */
-export async function assistantChatApi(message: string): Promise<string> {
+export async function assistantChatApi(message: string): Promise<AssistantReply> {
   const res = await post("/api/assistant/chat", { message });
-  const data = (await res.json()) as { reply: string };
+  const data = (await res.json()) as Partial<AssistantReply>;
   if (!data.reply) throw new Error("empty reply");
-  return data.reply;
+  return {
+    reply: data.reply,
+    say: data.say || extractSay(data.reply),
+    lang: data.lang || "ru",
+  };
+}
+
+/** Запасной вариант: вытащить татарскую реплику из «кавычек» для озвучки. */
+export function extractSay(reply: string): string {
+  const m = reply.match(/«([^»]+)»/);
+  if (m?.[1]) return m[1].trim();
+  return splitSentences(cleanForTts(reply))[0] ?? reply;
 }

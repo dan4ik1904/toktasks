@@ -2,205 +2,229 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
-import { motion } from "framer-motion";
-import { BookOpenText, Flame, Settings, Target, Volume2, Zap } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
+import {
+  BookOpenText,
+  ChevronRight,
+  Flame,
+  Heart,
+  MapPinned,
+  MessageCircleMore,
+  Settings,
+  Sparkles,
+  Volume2,
+} from "lucide-react";
+import { IslandCard } from "@/components/island-card";
 import { ISLANDS, islandProgress, islandStatus } from "@/data/islands";
 import { ttsSpeak } from "@/lib/api";
 import { useTelegram } from "@/providers/telegram-provider";
 import { levelOf, MAX_HEARTS, useProgress } from "@/store/use-progress";
-import { IslandCard } from "@/components/island-card";
-import { Progress } from "@/components/ui/progress";
 
 export default function Home() {
+  const reduceMotion = useReducedMotion();
   const completedLessons = useProgress((s) => s.completedLessons);
   const xp = useProgress((s) => s.xp);
   const streak = useProgress((s) => s.streak);
   const hearts = useProgress((s) => s.hearts);
   const { user } = useTelegram();
   const displayName = user?.first_name ?? "Айгуль";
-  const { title: levelTitle } = levelOf(xp);
+  const { level, title: levelTitle, into } = levelOf(xp);
 
-  // Слово дня: детерминировано датой, одинаково на сервере и клиенте.
   const wordOfDay = useMemo(() => {
-    const all: { tt: string; ru: string; island: string }[] = [];
-    for (const isl of ISLANDS) {
-      for (const l of isl.lessons) {
-        for (const w of l.words) all.push({ tt: w.tt, ru: w.ru, island: isl.title });
+    const words: { tt: string; ru: string; island: string }[] = [];
+    for (const island of ISLANDS) {
+      for (const lesson of island.lessons) {
+        for (const word of lesson.words) {
+          words.push({ tt: word.tt, ru: word.ru, island: island.title });
+        }
       }
     }
     const day = Math.floor(Date.now() / 86400000);
-    return all[day % all.length];
+    return words[day % words.length];
   }, []);
 
   const doneIslands = ISLANDS.filter(
-    (_, i) => islandStatus(i, completedLessons) === "done",
+    (_, index) => islandStatus(index, completedLessons) === "done",
   ).length;
-  const totalLessons = ISLANDS.reduce((n, isl) => n + isl.lessons.length, 0);
 
   return (
-    <main className="flex w-full flex-1 flex-col gap-4 px-4 pt-4 pb-6">
-      {/* 1. Хедер: аватар, имя, счёт островов */}
-      <motion.section
-        initial={{ opacity: 0, y: -8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="flex items-center gap-3 rounded-2xl border border-[#3a3370] bg-[#1d1747]/80 p-3"
-      >
-        <span className="flex size-12 items-center justify-center rounded-full bg-gradient-to-br from-[#ffc800] to-[#7c5cff] text-xl font-bold text-[#120e2b]">
-          {displayName.slice(0, 1)}
-        </span>
-        <div className="flex-1">
-          <p className="font-semibold">{displayName}</p>
-          <p className="text-sm text-[#a7a2c9]">
-            {doneIslands}/{ISLANDS.length} островов · {levelTitle}
-          </p>
-        </div>
-        {streak > 0 && (
-          <span
-            className="inline-flex items-center gap-1 rounded-full bg-orange-500/15 px-2.5 py-1 text-xs font-bold text-orange-300"
-            title="Дней подряд"
+    <main className="relative flex w-full flex-1 flex-col pb-8">
+      <div className="map-noise absolute inset-0 pointer-events-none" aria-hidden />
+
+      <header className="relative z-[1] px-4 pt-4">
+        <div className="flex items-center gap-3">
+          <Link
+            href="/profile"
+            className="avatar-seal flex size-12 shrink-0 items-center justify-center rounded-full text-lg font-black"
+            aria-label="Открыть профиль"
           >
-            <Flame className="size-3.5" aria-hidden />
-            {streak}
-          </span>
-        )}
-        <span
-          className="inline-flex items-center gap-1 rounded-full bg-[#ffc800]/15 px-2.5 py-1 text-xs font-bold text-[#ffc800]"
-          title="Очки опыта"
-        >
-          <Zap className="size-3.5" aria-hidden />
-          {xp}
-        </span>
-        <span
-          className="inline-flex items-center gap-1 rounded-full bg-red-500/15 px-2.5 py-1 text-xs font-bold text-red-300"
-          title={`Сердца: ${hearts} из ${MAX_HEARTS}`}
-        >
-          <span aria-hidden>❤️</span>
-          {hearts}
-        </span>
-        <Link
-          href="/profile"
-          aria-label="Настройки профиля"
-          className="flex size-10 items-center justify-center rounded-full text-[#a7a2c9] hover:bg-white/5"
-        >
-          <Settings className="size-5" aria-hidden />
-        </Link>
-      </motion.section>
-
-      {/* 2. Прогресс-бар с градиентом */}
-      <section className="rounded-2xl border border-[#3a3370] bg-[#1d1747]/80 p-4">
-        <p className="text-sm">
-          Ты прошёл {doneIslands} из {ISLANDS.length} островов
-        </p>
-        <Progress
-          value={completedLessons.length}
-          max={totalLessons}
-          className="mt-2 h-2.5 [&>div]:bg-gradient-to-r [&>div]:from-[#58cc02] [&>div]:to-[#ffc800]"
-        />
-      </section>
-
-      {/* Слово дня */}
-      <section className="flex items-center gap-3 rounded-2xl border border-[#ffc800]/40 bg-gradient-to-r from-[#ffc800]/10 to-transparent p-4">
-        <div className="flex-1">
-          <p className="text-xs tracking-wide text-[#ffc800] uppercase">
-            Сүз · слово дня · {wordOfDay.island}
-          </p>
-          <p className="pt-0.5 text-lg font-bold">{wordOfDay.tt}</p>
-          <p className="text-sm text-[#a7a2c9]">{wordOfDay.ru}</p>
+            {displayName.slice(0, 1)}
+          </Link>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-bold">Исәнме, {displayName}!</p>
+            <p className="text-xs text-[var(--muted)]">
+              {level} дәрәҗә · {levelTitle}
+            </p>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="status-pill" title="Серия дней">
+              <Flame className="size-3.5 text-[var(--terracotta)]" aria-hidden />
+              {streak}
+            </span>
+            <span className="status-pill" title={`Сердца: ${hearts} из ${MAX_HEARTS}`}>
+              <Heart className="size-3.5 fill-[var(--terracotta)] text-[var(--terracotta)]" aria-hidden />
+              {hearts}
+            </span>
+            <Link
+              href="/profile"
+              className="flex size-9 items-center justify-center rounded-full border border-[var(--line)] bg-[var(--surface)] text-[var(--muted)]"
+              aria-label="Настройки"
+            >
+              <Settings className="size-4" aria-hidden />
+            </Link>
+          </div>
         </div>
-        <button
-          onClick={() => void ttsSpeak(wordOfDay.tt)}
-          aria-label={`Озвучить: ${wordOfDay.tt}`}
-          className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#ffc800] text-[#120e2b]"
-        >
-          <Volume2 className="size-5" aria-hidden />
-        </button>
-      </section>
 
-      {/* Квесты дня */}
-      <section className="rounded-2xl border border-[#3a3370] bg-[#1d1747]/80 p-4">
-        <p className="flex items-center gap-1.5 text-sm font-semibold">
-          <Target className="size-4 text-[#ffc800]" aria-hidden />
-          Квесты дня
-        </p>
-        <div className="flex flex-col gap-2.5 pt-3">
-          {[
-            {
-              label: "Пройди 3 урока",
-              done: Math.min(completedLessons.length, 3),
-              total: 3,
-            },
-            {
-              label: "Набери 100 XP",
-              done: Math.min(xp, 100),
-              total: 100,
-            },
-            {
-              label: "Серия 3 дня",
-              done: Math.min(streak, 3),
-              total: 3,
-            },
-          ].map((q) => (
-            <div key={q.label}>
-              <div className="flex items-center justify-between text-xs">
-                <span className={q.done >= q.total ? "text-[#58cc02]" : ""}>
-                  {q.done >= q.total ? "✅ " : ""}
-                  {q.label}
-                </span>
-                <span className="text-[#a7a2c9] tabular-nums">
-                  {q.done}/{q.total}
-                </span>
+        <section className="hero-folio mt-5 overflow-hidden rounded-[2rem] border border-[var(--line)] p-5">
+          <div className="relative z-[1]">
+            <p className="text-[10px] font-black tracking-[0.2em] text-[var(--accent)] uppercase">
+              Татар архипелагы
+            </p>
+            <div className="mt-2 flex items-end justify-between gap-3">
+              <div>
+                <h1 className="max-w-[14rem] text-[2rem] leading-[0.98] font-black tracking-[-0.045em] text-balance">
+                  Слова живут на островах
+                </h1>
+                <p className="mt-3 max-w-[15rem] text-sm leading-5 text-[var(--muted)]">
+                  Плыви по темам, знакомься с хранителями и собирай свою речь.
+                </p>
               </div>
-              <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/10">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-[#58cc02] to-[#ffc800]"
-                  style={{ width: `${(q.done / q.total) * 100}%` }}
-                />
+              <motion.div
+                animate={reduceMotion ? undefined : { y: [0, -5, 0], rotate: [0, -2, 0] }}
+                transition={{ repeat: Infinity, duration: 5 }}
+                className="relative flex size-24 shrink-0 items-center justify-center"
+                aria-hidden
+              >
+                <span className="absolute inset-0 rounded-[45%] bg-[var(--water)]/35 blur-xl" />
+                <span className="text-[4.5rem] drop-shadow-[0_12px_18px_rgba(32,60,54,0.25)]">⛵</span>
+              </motion.div>
+            </div>
+
+            <div className="mt-5 flex items-center gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between text-xs">
+                  <span>{doneIslands} из {ISLANDS.length} островов</span>
+                  <span className="font-bold text-[var(--accent)] tabular-nums">{xp} XP</span>
+                </div>
+                <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-[var(--track)]">
+                  <div
+                    className="h-full rounded-full bg-[var(--accent)]"
+                    style={{ width: `${Math.max(4, (doneIslands / ISLANDS.length) * 100)}%` }}
+                  />
+                </div>
+              </div>
+              <div className="grid size-12 shrink-0 place-items-center rounded-full border border-[var(--gold)]/40 bg-[var(--gold-soft)] text-xs font-black text-[var(--gold)]">
+                {into}%
               </div>
             </div>
-          ))}
+          </div>
+          <div className="hero-ornament absolute inset-y-0 right-0 w-40 opacity-35" aria-hidden />
+        </section>
+      </header>
+
+      <section className="relative z-[1] mt-4 px-4">
+        <div className="grid grid-cols-[1fr_auto] gap-3 rounded-[1.5rem] border border-[var(--line)] bg-[var(--surface)] p-4">
+          <div>
+            <p className="text-[10px] font-black tracking-[0.16em] text-[var(--terracotta)] uppercase">
+              Бүгенге сүз · слово дня
+            </p>
+            <p className="mt-1 text-xl font-black">{wordOfDay.tt}</p>
+            <p className="text-sm text-[var(--muted)]">
+              {wordOfDay.ru} · {wordOfDay.island}
+            </p>
+          </div>
+          <button
+            onClick={() => void ttsSpeak(wordOfDay.tt)}
+            className="flex size-12 items-center justify-center self-center rounded-full bg-[var(--accent)] text-white shadow-[0_6px_0_var(--accent-deep)] active:translate-y-1 active:shadow-none"
+            aria-label={`Озвучить ${wordOfDay.tt}`}
+          >
+            <Volume2 className="size-5" aria-hidden />
+          </button>
         </div>
       </section>
 
-      {/* Словарь */}
-      <Link
-        href="/dictionary"
-        className="flex items-center gap-3 rounded-2xl border border-[#3a3370] bg-[#1d1747]/80 p-4"
-      >
-        <span className="flex size-11 items-center justify-center rounded-xl bg-[#7c5cff]/20 text-[#7c5cff]">
-          <BookOpenText className="size-6" aria-hidden />
-        </span>
-        <span>
-          <span className="block font-semibold">Словарь</span>
-          <span className="block text-sm text-[#a7a2c9]">
-            Все слова островов с озвучкой
+      <section className="relative z-[1] mt-6 px-4">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <p className="flex items-center gap-1.5 text-[10px] font-black tracking-[0.18em] text-[var(--muted)] uppercase">
+              <MapPinned className="size-3.5 text-[var(--accent)]" aria-hidden />
+              Маршрут
+            </p>
+            <h2 className="mt-1 text-2xl font-black tracking-[-0.03em]">
+              Острова Татарстана
+            </h2>
+          </div>
+          <span className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-1 text-[11px] text-[var(--muted)]">
+            10 тем
           </span>
-        </span>
-      </Link>
+        </div>
 
-      {/* 3. Сетка островов */}
-      <section className="grid grid-cols-2 gap-3">
-        {ISLANDS.map((island, i) => {
-          const status = islandStatus(i, completedLessons);
-          const p = islandProgress(island, completedLessons);
-          const card = (
-            <IslandCard
-              island={island}
-              status={status}
-              done={p.done}
-              total={p.total}
-              pct={p.pct}
-              index={i}
-            />
-          );
-          return status === "locked" ? (
-            <div key={island.slug}>{card}</div>
-          ) : (
-            <Link key={island.slug} href={`/island/${island.slug}`}>
-              {card}
-            </Link>
-          );
-        })}
+        <div className="island-route relative mt-5 flex flex-col gap-5 pb-4">
+          {ISLANDS.map((island, index) => {
+            const status = islandStatus(index, completedLessons);
+            const progress = islandProgress(island, completedLessons);
+            const node = (
+              <IslandCard
+                island={island}
+                status={status}
+                done={progress.done}
+                total={progress.total}
+                pct={progress.pct}
+                index={index}
+              />
+            );
+
+            return status === "locked" ? (
+              <div key={island.slug}>{node}</div>
+            ) : (
+              <Link key={island.slug} href={`/island/${island.slug}`}>
+                {node}
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="relative z-[1] mt-3 px-4">
+        <div className="grid grid-cols-2 gap-3">
+          <Link href="/culture" className="portal-link portal-link--warm">
+            <Sparkles className="size-5" aria-hidden />
+            <span>
+              <span className="block font-bold">Мәдәният</span>
+              <span className="block text-xs opacity-65">Культура и традиции</span>
+            </span>
+            <ChevronRight className="ml-auto size-4" aria-hidden />
+          </Link>
+          <Link href="/dictionary" className="portal-link">
+            <BookOpenText className="size-5" aria-hidden />
+            <span>
+              <span className="block font-bold">Сүзлек</span>
+              <span className="block text-xs opacity-65">Личный словарь</span>
+            </span>
+            <ChevronRight className="ml-auto size-4" aria-hidden />
+          </Link>
+        </div>
+
+        <Link href="/assistant" className="mt-3 flex items-center gap-3 rounded-[1.5rem] bg-[var(--ink)] p-4 text-[var(--paper)]">
+          <span className="flex size-11 items-center justify-center rounded-full bg-white/10">
+            <MessageCircleMore className="size-5" aria-hidden />
+          </span>
+          <span className="flex-1">
+            <span className="block font-bold">Поговорить с Ярдәмче</span>
+            <span className="block text-xs text-white/60">Татарча сөйләшеп карыйк</span>
+          </span>
+          <ChevronRight className="size-4" aria-hidden />
+        </Link>
       </section>
     </main>
   );

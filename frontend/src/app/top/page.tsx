@@ -19,14 +19,14 @@ export default function TopPage() {
   return (
     <main className="flex w-full flex-1 flex-col gap-4 px-4 pt-4 pb-6">
       <h1 className="flex items-center gap-2 text-2xl font-bold">
-        <Crown className="size-6 text-[#ffc800]" aria-hidden />
+        <Crown className="size-6 text-[var(--gold)]" aria-hidden />
         Топ учеников
       </h1>
 
       {rows === null ? (
-        <p className="text-sm text-[#a7a2c9]">Загружаю топ…</p>
+        <p className="text-sm text-[var(--muted)]">Загружаю топ…</p>
       ) : rows.length === 0 ? (
-        <p className="text-sm text-[#a7a2c9]">
+        <p className="text-sm text-[var(--muted)]">
           Сервер недоступен или топ пуст. Проходи уроки — и будешь первым!
         </p>
       ) : (
@@ -39,26 +39,26 @@ export default function TopPage() {
                 className={cn(
                   "flex items-center gap-3 rounded-2xl border p-3",
                   mine
-                    ? "border-[#ffc800]/60 bg-[#ffc800]/10"
-                    : "border-[#3a3370] bg-[#1d1747]/80",
+                    ? "border-[var(--gold)]/60 bg-[var(--gold-soft)]"
+                    : "border-[var(--line)] bg-[var(--surface)]",
                 )}
               >
                 <span className="w-8 shrink-0 text-center text-xl" aria-hidden>
                   {MEDALS[i] ?? `${i + 1}`}
                 </span>
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#7c5cff] to-[#58cc02] font-bold">
+                <span className="avatar-seal flex size-10 shrink-0 items-center justify-center rounded-full font-bold">
                   {r.name.slice(0, 1)}
                 </span>
                 <div className="flex-1">
                   <p className="font-semibold">
                     {r.name}
-                    {mine && <span className="text-xs text-[#ffc800]"> · ты</span>}
+                    {mine && <span className="text-xs text-[var(--gold)]"> · ты</span>}
                   </p>
-                  <p className="text-xs text-[#a7a2c9] tabular-nums">
+                  <p className="text-xs text-[var(--muted)] tabular-nums">
                     {r.lessons} уроков · 🔥 {r.streak}
                   </p>
                 </div>
-                <span className="text-sm font-bold text-[#ffc800] tabular-nums">
+                <span className="text-sm font-bold text-[var(--gold)] tabular-nums">
                   {r.xp} XP
                 </span>
               </li>

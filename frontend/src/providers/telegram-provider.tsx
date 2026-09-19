@@ -21,8 +21,17 @@ import type { User } from "@telegram-apps/types";
 import { registerApi } from "@/lib/api";
 import { useProgress } from "@/store/use-progress";
 
-/** Фон приложения — под него красим шапку и фон Mini App. */
-const APP_BG = "#120e2b";
+/** Фон приложения — под него красим шапку и фон Mini App (из --bg новой палитры). */
+const APP_BG_FALLBACK = "#f3eee2";
+
+function appBg(): string {
+  try {
+    const bg = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim();
+    return bg || APP_BG_FALLBACK;
+  } catch {
+    return APP_BG_FALLBACK;
+  }
+}
 
 export interface TelegramContextValue {
   /** Пользователь Telegram (undefined вне Telegram). */
@@ -65,10 +74,10 @@ function initSdk(): boolean {
       });
     }
 
-    // Тёмная тема: красим нативные панели под фон приложения.
-    if (miniApp.setHeaderColor.isAvailable()) miniApp.setHeaderColor(APP_BG);
+    // Красим нативные панели под фон приложения.
+    if (miniApp.setHeaderColor.isAvailable()) miniApp.setHeaderColor(appBg());
     if (miniApp.setBackgroundColor.isAvailable()) {
-      miniApp.setBackgroundColor(APP_BG);
+      miniApp.setBackgroundColor(appBg());
     }
 
     if (miniApp.ready.isAvailable()) miniApp.ready();
