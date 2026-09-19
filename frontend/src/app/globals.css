@@ -296,6 +296,16 @@ input:focus-visible {
   color: var(--fg);
 }
 
+.btn-danger {
+  background: var(--danger);
+  color: #fff;
+}
+
+.btn-danger:hover {
+  background: #c0392b;
+  box-shadow: 0 0 15px rgba(231, 76, 60, 0.3);
+}
+
 .btn-sm {
   padding: 0.4rem 0.8rem;
   font-size: 0.75rem;

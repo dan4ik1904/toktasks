@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Check, X, Lightbulb } from "lucide-react";
 import { TOPICS } from "@/data/topics";
@@ -19,6 +19,11 @@ export default function TopicPage() {
   const [composeWords, setComposeWords] = useState<string[]>([]);
   const [showHint, setShowHint] = useState(false);
   const [earned, setEarned] = useState(0);
+  const [isRecording, setIsRecording] = useState(false);
+  const [speakScore, setSpeakScore] = useState<number | null>(null);
+  const [speakHint, setSpeakHint] = useState("");
+  const [isSpeakChecking, setIsSpeakChecking] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 
   if (!topic) {
     return (
@@ -51,8 +56,70 @@ export default function TopicPage() {
       setShowResult(false);
       setIsCorrect(false);
       setShowHint(false);
+      setSpeakScore(null);
+      setSpeakHint("");
     }
   };
+
+  const handleSpeakRecord = useCallback(async () => {
+    if (isRecording) {
+      mediaRecorderRef.current?.stop();
+      setIsRecording(false);
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+      const chunks: Blob[] = [];
+      recorder.ondataavailable = (e) => chunks.push(e.data);
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const blob = new Blob(chunks, { type: "audio/webm" });
+        setIsSpeakChecking(true);
+
+        const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        try {
+          const reader = new FileReader();
+          reader.onload = async () => {
+            const audioBase64 = (reader.result as string).split(",")[1];
+            const res = await fetch(base + "/api/task/speak", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                expected: task?.answer || "",
+                audio_base64: audioBase64,
+                heard: "",
+              }),
+            });
+            const data = await res.json();
+            setSpeakScore(data.score || 0);
+            setSpeakHint(data.hint_ru || data.hint_tt || "");
+            if (data.correct) {
+              setIsCorrect(true);
+              setShowResult(true);
+              completeTask(task!.id, task!.reward);
+              setEarned((e) => e + task!.reward);
+            } else {
+              setIsCorrect(false);
+              setShowResult(true);
+            }
+            setIsSpeakChecking(false);
+          };
+          reader.readAsDataURL(blob);
+        } catch {
+          setIsSpeakChecking(false);
+          setSpeakHint("Ошибка соединения с сервером");
+        }
+      };
+
+      mediaRecorderRef.current = recorder;
+      recorder.start();
+      setIsRecording(true);
+    } catch {
+      setSpeakHint("Микрофон недоступен");
+    }
+  }, [isRecording, task, completeTask]);
 
   const renderTask = () => {
     if (!task) return null;
@@ -234,6 +301,45 @@ export default function TopicPage() {
       );
     }
 
+    if (task.type === "speak") {
+      return (
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", alignItems: "center" }}>
+          <p style={{ fontWeight: 600, fontSize: "0.95rem" }}>{task.question}</p>
+          {task.speakText && (
+            <div style={{
+              padding: "0.75rem 1rem", borderRadius: "0.75rem", background: "var(--surface-2)",
+              fontSize: "1.1rem", fontWeight: 600, color: "var(--gold)", textAlign: "center",
+            }}>
+              «{task.speakText}»
+            </div>
+          )}
+          <button
+            className={"btn " + (isRecording ? "btn-danger" : "btn-gold")}
+            onClick={handleSpeakRecord}
+            disabled={isSpeakChecking || showResult}
+            style={{ padding: "0.75rem 1.5rem", fontSize: "1rem" }}
+          >
+            {isRecording ? "⏹ Остановить" : isSpeakChecking ? "🤔 Проверяю..." : "🎤 Произнести"}
+          </button>
+          {speakScore !== null && (
+            <div style={{ textAlign: "center", width: "100%" }}>
+              <div style={{ fontSize: "0.8rem", color: "var(--fg-muted)" }}>Точность: {speakScore}%</div>
+              {speakHint && (
+                <div style={{ fontSize: "0.8rem", color: "var(--fg-muted)", marginTop: 4 }}>
+                  🐱 {speakHint}
+                </div>
+              )}
+            </div>
+          )}
+          {showResult && isCorrect && (
+            <div style={{ color: "var(--success)", fontWeight: 700 }}>
+              Отлично! Произношение верное! +{task.reward} 💰
+            </div>
+          )}
+        </div>
+      );
+    }
+
     return null;
   };
 
@@ -257,7 +363,7 @@ export default function TopicPage() {
 
       <div style={{ fontSize: "0.7rem", color: "var(--fg-muted)", textAlign: "center" }}>
         Задание {currentIdx + 1} из {topic.tasks.length}
-        {task && <span style={{ marginLeft: 8 }}>({task.type === "translate" ? "перевод" : task.type === "compose" ? "составь" : task.type === "truefalse" ? "верно/неверно" : task.type === "grammar" ? "грамматика" : "аудио"})</span>}
+        {task && <span style={{ marginLeft: 8 }}>({task.type === "translate" ? "перевод" : task.type === "compose" ? "составь" : task.type === "truefalse" ? "верно/неверно" : task.type === "grammar" ? "грамматика" : task.type === "speak" ? "произнеси" : "аудио"})</span>}
       </div>
 
       <div className="card">{renderTask()}</div>

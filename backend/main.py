@@ -1,13 +1,16 @@
 """Точка входа: uvicorn main:app --reload (запуск из backend/)."""
 
-from fastapi import Depends, FastAPI, HTTPException
+import base64
+from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from pydantic import BaseModel
 
 from api import stt, translate, tts
 from assistant import ask_assistant, grade_pronunciation, probe_llm
 from auth import telegram_user
 from config import settings
+from gigachat import gigachat
 from island_logic import check_answer, get_island, islands_index
 import db as store
 
@@ -157,3 +160,169 @@ def api_stats() -> dict:
 @app.get("/api/user/stats")
 def api_user_stats(user_id: str = "demo", user: dict | None = Depends(telegram_user)) -> dict:
     return store.user_stats(_uid(user, user_id))
+
+
+# --- Голосовой чат с котом: STT → GigaChat → TTS ---
+
+CAT_SYSTEM = (
+    "Син Татар Кот — дәү татар кәтәве! Син дустлык, кызык һәм ярдәмче. "
+    "Син татарча да, русча да сөйләшә аласың. "
+    "Отвечай КОРОТКО (1-2 предложения), дружелюбно, как кот-друг. "
+    "Исправляй ошибки ученика мягко. "
+    "СТРОГИЙ ФОРМАТ: отвечай ТОЛЬКО JSON: "
+    '{"tt": "татарская фраза (1-2 предложения)", "ru": "перевод на русский", '
+    '"mood": "happy|thinking|playful|sleeping"}. '
+    "Если ученик ошибся в татарском — мягко поправь. Никакого английского."
+)
+
+
+class CatChatResponse(BaseModel):
+    reply: str
+    say: str = ""
+    text: str = ""
+    mood: str = "happy"
+
+
+@app.post("/api/cat/chat", response_model=CatChatResponse)
+async def cat_voice_chat(audio: UploadFile = File(...)) -> CatChatResponse:
+    raw = await audio.read()
+    if not raw:
+        raise HTTPException(status_code=400, detail="пустой файл")
+
+    from api._client import tatsoft_client, tatsoft_post
+
+    async with tatsoft_client(settings.tatsoft_stt_base) as client:
+        resp = await tatsoft_post(
+            client,
+            "/listening/",
+            files={"file": (audio.filename or "audio.wav", raw, "audio/wav")},
+        )
+    try:
+        data = resp.json()
+        if isinstance(data.get("text"), str):
+            text = data["text"]
+        elif isinstance(data.get("text"), dict):
+            text = data["text"].get("text", "")
+        else:
+            text = str(data["r"][0]["response"][0]["text"])
+    except Exception:
+        raise HTTPException(status_code=502, detail="Tatsoft не распознал речь")
+
+    if not text.strip():
+        return CatChatResponse(reply="Мяв? Я не расслышал...", say="", text="", mood="thinking")
+
+    try:
+        result = await gigachat.chat(
+            messages=[
+                {"role": "system", "content": CAT_SYSTEM},
+                {"role": "user", "content": text},
+            ],
+            temperature=0.8,
+            max_tokens=200,
+        )
+        import json
+        start, end = result.find("{"), result.rfind("}")
+        cat_data = json.loads(result[start : end + 1])
+        tt = str(cat_data.get("tt", "")).strip()
+        ru = str(cat_data.get("ru", "")).strip()
+        mood = str(cat_data.get("mood", "happy")).strip()
+        reply = f"{tt} ({ru})" if ru else tt
+    except Exception:
+        tt = "Мяв! Кот не может ответить"
+        ru = ""
+        mood = "thinking"
+        reply = tt
+
+    return CatChatResponse(reply=reply, say=tt, text=text, mood=mood)
+
+
+@app.post("/api/cat/tts")
+async def cat_tts(text: str = "") -> Response:
+    if not text.strip():
+        raise HTTPException(status_code=400, detail="пустой текст")
+    from api._client import tatsoft_client, tatsoft_get
+
+    params = {"speaker": "almaz", "text": text}
+    if settings.tatsoft_api_key:
+        params["token"] = settings.tatsoft_api_key
+    async with tatsoft_client(settings.tatsoft_tts_base) as client:
+        resp = await tatsoft_get(client, "/listening/", params=params)
+    try:
+        wav = base64.b64decode(resp.json()["wav_base64"])
+    except Exception:
+        raise HTTPException(status_code=502, detail="Tatsoft TTS недоступен")
+    return Response(content=wav, media_type="audio/wav")
+
+
+# --- Speak task: LLM-коррекция произношения ---
+
+SPEAK_GRADE_SYSTEM = (
+    "Син — татар теле укытучысы. Укучы произнёс фразу. "
+    "ЭТАЛОН: правильная фраза. УСЛЫШАНО: что сказал ученик. "
+    "Отвечай СТРОГО JSON без пояснений: "
+    '{"correct": bool, "score": 0-100, "hint_tt": "подсказка ПО-ТАТАРСКИ", '
+    '"hint_ru": "подсказка ПО-РУССКИ", "syllables": ["слоги эталона"], '
+    '"say_this": "эталон целиком", "mood": "happy|thinking|playful"}. '
+    "Прощай мелкие огрехи (регистр, пунктуация). "
+    "Если услышанное близко к эталону — correct=true. "
+    "score — процент совпадения (0-100)."
+)
+
+
+class SpeakCheckRequest(BaseModel):
+    expected: str
+    audio_base64: str = ""
+    heard: str = ""
+
+
+class SpeakCheckResponse(BaseModel):
+    correct: bool = False
+    score: int = 0
+    hint_tt: str = ""
+    hint_ru: str = ""
+    syllables: list[str] = []
+    say_this: str = ""
+    source: str = "offline"
+
+
+@app.post("/api/task/speak", response_model=SpeakCheckResponse)
+async def check_speak_task(req: SpeakCheckRequest) -> SpeakCheckResponse:
+    if not req.heard.strip():
+        return SpeakCheckResponse(hint_tt="Тыңла һәм кабатла!", hint_ru="Послушай и повтори!")
+
+    if settings.gigachat_client_id and settings.gigachat_client_secret:
+        try:
+            result = await gigachat.chat(
+                messages=[
+                    {"role": "system", "content": SPEAK_GRADE_SYSTEM},
+                    {"role": "user", "content": f"ЭТАЛОН: {req.expected}\nУСЛЫШАНО: {req.heard}"},
+                ],
+                temperature=0.2,
+                max_tokens=300,
+            )
+            import json
+            start, end = result.find("{"), result.rfind("}")
+            data = json.loads(result[start : end + 1])
+            from assistant import split_syllables
+            return SpeakCheckResponse(
+                correct=bool(data.get("correct", False)),
+                score=int(data.get("score", 0)),
+                hint_tt=str(data.get("hint_tt", "Тыңла һәм кабатла.")),
+                hint_ru=str(data.get("hint_ru", "Послушай и повтори.")),
+                syllables=list(data.get("syllables", split_syllables(req.expected))),
+                say_this=str(data.get("say_this", req.expected)),
+                source="gigachat",
+            )
+        except Exception:
+            pass
+
+    grade = await grade_pronunciation(req.expected, req.heard)
+    return SpeakCheckResponse(
+        correct=grade.get("correct", False),
+        score=100 if grade.get("correct") else 30,
+        hint_tt=grade.get("hint_tt", ""),
+        hint_ru=grade.get("hint_ru", ""),
+        syllables=grade.get("syllables", []),
+        say_this=grade.get("say_this", req.expected),
+        source=grade.get("source", "offline"),
+    )

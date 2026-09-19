@@ -1,12 +1,13 @@
 export interface Task {
   id: string;
-  type: "translate" | "compose" | "listen" | "grammar" | "truefalse";
+  type: "translate" | "compose" | "listen" | "grammar" | "truefalse" | "speak";
   question: string;
   questionTt?: string;
   answer: string;
   options?: string[];
   words?: string[];
   reward: number;
+  speakText?: string;
 }
 
 export interface Topic {
@@ -33,6 +34,7 @@ export const TOPICS: Topic[] = [
       {"id": "priv-3", "type": "truefalse", "question": "«Мин Дания» означает «Меня зовут Дания»", "answer": "true", "options": ["true", "false"], "reward": 5},
       {"id": "priv-4", "type": "compose", "question": "Составь фразу «Меня зовут Айрат»", "words": ["Мин", "исемем", "Айрат"], "answer": "Мин исемем Айрат", "reward": 8},
       {"id": "priv-5", "type": "grammar", "question": "Сәлам! Мин ___ Дания.", "answer": "исемем", "options": ["исемем", "исемең", "исеме", "исемнәр"], "reward": 7},
+      {"id": "priv-6", "type": "speak", "question": "Произнеси: «Сәлам, хәлләр ничек?»", "answer": "Сәлам, хәлләр ничек?", "speakText": "Сәлам, хәлләр ничек?", "reward": 10},
     ],
   },
   {
@@ -48,6 +50,7 @@ export const TOPICS: Topic[] = [
       {"id": "eda-3", "type": "truefalse", "question": "«Эчпочмак» — это татарское мороженое", "answer": "false", "options": ["true", "false"], "reward": 5},
       {"id": "eda-4", "type": "compose", "question": "Составь «Я хочу хлеб»", "words": ["Мин", "ипек", "телим"], "answer": "Мин ипек телим", "reward": 8},
       {"id": "eda-5", "type": "grammar", "question": "Мин ___ эчәм.", "answer": "чәй", "options": ["чәй", "чәйнең", "чәйдә", "чәйләр"], "reward": 7},
+      {"id": "eda-6", "type": "speak", "question": "Произнеси: «Чәй эчәбез! Тәмле булсын!»", "answer": "Чәй эчәбез! Тәмле булсын!", "speakText": "Чәй эчәбез! Тәмле булсын!", "reward": 10},
     ],
   },
   {
@@ -63,6 +66,7 @@ export const TOPICS: Topic[] = [
       {"id": "chis-3", "type": "compose", "question": "Составь «У меня три кошки»", "words": ["Минем", "өч", "мәчкәм", "бар"], "answer": "Минем өч мәчкәм бар", "reward": 8},
       {"id": "chis-4", "type": "truefalse", "question": "«Алты» — это число 7", "answer": "false", "options": ["true", "false"], "reward": 5},
       {"id": "chis-5", "type": "listen", "question": "Произнеси «сигез» (восемь)", "answer": "сигез", "reward": 5},
+      {"id": "chis-6", "type": "speak", "question": "Произнеси: «Бер, ике, өч, дүрт, биш!»", "answer": "Бер, ике, өч, дүрт, биш!", "speakText": "Бер, ике, өч, дүрт, биш!", "reward": 10},
     ],
   },
   {
@@ -78,6 +82,7 @@ export const TOPICS: Topic[] = [
       {"id": "sem-3", "type": "compose", "question": "Составь «Моя семья большая»", "words": ["Минем", "гаиләм", "зур"], "answer": "Минем гаиләм зур", "reward": 8},
       {"id": "sem-4", "type": "truefalse", "question": "«Апа» означает «брат»", "answer": "false", "options": ["true", "false"], "reward": 5},
       {"id": "sem-5", "type": "grammar", "question": "Минем ___ олы.", "answer": "әнием", "options": ["әнием", "әниемнең", "әниемдә", "әниемнәр"], "reward": 7},
+      {"id": "sem-6", "type": "speak", "question": "Произнеси: «Минем гаиләм зур!»", "answer": "Минем гаиләм зур!", "speakText": "Минем гаиләм зур!", "reward": 10},
     ],
   },
   {

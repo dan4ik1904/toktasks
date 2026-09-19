@@ -624,14 +624,44 @@ async def ask_assistant(message: str, history: list[dict] | None = None) -> dict
 
 
 async def _ask_llm(message: str, lang: str, history: list[dict]) -> dict | None:
-    url = settings.llm_base_url.rstrip("/") + "/chat/completions"
-    msgs: list[dict] = [{"role": "system", "content": SYSTEM_PROMPT}]
+    from gigachat import gigachat
+    from config import settings as cfg
+
+    use_gigachat = cfg.gigachat_client_id and cfg.gigachat_client_secret
+    if use_gigachat:
+        msgs: list[dict] = [{"role": "system", "content": SYSTEM_PROMPT}]
+        for m in history[-6:]:
+            role = "assistant" if m.get("role") == "assistant" else "user"
+            text = str(m.get("text", ""))[:500]
+            if text:
+                msgs.append({"role": role, "content": text})
+        msgs.append(
+            {
+                "role": "user",
+                "content": f"[язык ученика: {'татарский' if lang == 'tt' else 'русский'}] {message}",
+            }
+        )
+        try:
+            text = await gigachat.chat(msgs, temperature=0.7, max_tokens=500)
+            start, end = text.find("{"), text.rfind("}")
+            data = json.loads(text[start : end + 1])
+            tt = str(data.get("tt") or "").strip()
+            ru = str(data.get("ru") or "").strip()
+            if not tt:
+                return None
+            reply = f"{tt} ({ru})" if ru else tt
+            return {"reply": reply, "say": tt, "lang": lang}
+        except Exception:
+            return None
+
+    url = cfg.llm_base_url.rstrip("/") + "/chat/completions"
+    msgs_list: list[dict] = [{"role": "system", "content": SYSTEM_PROMPT}]
     for m in history[-6:]:
         role = "assistant" if m.get("role") == "assistant" else "user"
-        text = str(m.get("text", ""))[:500]
-        if text:
-            msgs.append({"role": role, "content": text})
-    msgs.append(
+        text_str = str(m.get("text", ""))[:500]
+        if text_str:
+            msgs_list.append({"role": role, "content": text_str})
+    msgs_list.append(
         {
             "role": "user",
             "content": f"[язык ученика: {'татарский' if lang == 'tt' else 'русский'}] {message}",
@@ -641,18 +671,18 @@ async def _ask_llm(message: str, lang: str, history: list[dict]) -> dict | None:
         async with httpx.AsyncClient(timeout=30) as client:
             resp = await client.post(
                 url,
-                headers={"Authorization": f"Bearer {settings.llm_api_key}"},
+                headers={"Authorization": f"Bearer {cfg.llm_api_key}"},
                 json={
-                    "model": settings.llm_model,
-                    "messages": msgs,
+                    "model": cfg.llm_model,
+                    "messages": msgs_list,
                     "temperature": 0.7,
                     "max_tokens": 500,
                 },
             )
             resp.raise_for_status()
-            text = resp.json()["choices"][0]["message"]["content"]
-        start, end = text.find("{"), text.rfind("}")
-        data = json.loads(text[start : end + 1])
+            text_val = resp.json()["choices"][0]["message"]["content"]
+        start, end = text_val.find("{"), text_val.rfind("}")
+        data = json.loads(text_val[start : end + 1])
         tt = str(data.get("tt") or "").strip()
         ru = str(data.get("ru") or "").strip()
         if not tt:
@@ -660,7 +690,6 @@ async def _ask_llm(message: str, lang: str, history: list[dict]) -> dict | None:
         reply = f"{tt} ({ru})" if ru else tt
         return {"reply": reply, "say": tt, "lang": lang}
     except Exception:
-        # LLM упал посреди диалога — деградируем в офлайн-режим.
         return None
 
 
@@ -719,14 +748,41 @@ async def probe_llm() -> bool:
 
 
 async def _grade_llm(expected: str, heard: str) -> dict | None:
-    url = settings.llm_base_url.rstrip("/") + "/chat/completions"
+    from gigachat import gigachat
+    from config import settings as cfg
+
+    use_gigachat = cfg.gigachat_client_id and cfg.gigachat_client_secret
+    if use_gigachat:
+        try:
+            text = await gigachat.chat(
+                messages=[
+                    {"role": "system", "content": GRADE_SYSTEM},
+                    {"role": "user", "content": f"ЭТАЛОН: {expected}\nУСЛЫШАНО: {heard}"},
+                ],
+                temperature=0.2,
+                max_tokens=300,
+            )
+            start, end = text.find("{"), text.rfind("}")
+            data = json.loads(text[start : end + 1])
+            return {
+                "correct": bool(data.get("correct")),
+                "hint_tt": str(data.get("hint_tt") or "Тыңла һәм кабатла."),
+                "hint_ru": str(data.get("hint_ru") or "Послушай и повтори."),
+                "syllables": list(data.get("syllables") or split_syllables(expected)),
+                "say_this": str(data.get("say_this") or expected),
+                "source": "gigachat",
+            }
+        except Exception:
+            return None
+
+    url = cfg.llm_base_url.rstrip("/") + "/chat/completions"
     try:
         async with httpx.AsyncClient(timeout=20) as client:
             resp = await client.post(
                 url,
-                headers={"Authorization": f"Bearer {settings.llm_api_key}"},
+                headers={"Authorization": f"Bearer {cfg.llm_api_key}"},
                 json={
-                    "model": settings.llm_model,
+                    "model": cfg.llm_model,
                     "messages": [
                         {"role": "system", "content": GRADE_SYSTEM},
                         {
