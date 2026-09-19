@@ -307,59 +307,78 @@ export function RunnerGame({ onDone }: { onDone: (storePoints: number) => void }
     ctx.globalAlpha = 1;
   };
 
-  // Шурале: лесной дух — лохматый, с рожками и длинными пальцами
+  // Шурале по Тукаю: долговязый лесной дух, тощий, сгорбленный, с одним рогом на лбу и длинными пальцами
   function drawShurale(ctx: CanvasRenderingContext2D, o: Obstacle) {
     const cx = o.x + o.w / 2;
     const base = o.y + o.h;
-    const scale = o.kind === "low" ? 0.8 : o.kind === "tall" ? 1 : 1.05;
+    const scale = o.kind === "low" ? 0.85 : o.kind === "tall" ? 1.15 : 1.0;
     ctx.save();
     ctx.translate(cx, base);
     ctx.scale(scale, scale);
-    // тень
-    ctx.fillStyle = "rgba(0,0,0,0.3)";
-    ctx.beginPath(); ctx.ellipse(0, 2, 22, 5, 0, 0, Math.PI * 2); ctx.fill();
-    // лохматое тело (зубчатый силуэт)
-    ctx.fillStyle = o.kind === "tall" ? "#2d6a4f" : "#3a7d4f";
+    // Тень
+    ctx.fillStyle = "rgba(0,0,0,0.35)";
+    ctx.beginPath(); ctx.ellipse(0, 2, 16, 4, 0, 0, Math.PI * 2); ctx.fill();
+
+    const bh = o.h / scale;
+
+    // Долговязое тощее тело (темно-бурый / лесной силуэт)
+    ctx.fillStyle = "#3d3224";
+    ctx.strokeStyle = "#221c13";
+    ctx.lineWidth = 2;
+
+    // Сгорбленное туловище
     ctx.beginPath();
-    const bw = 20, bh = o.h / scale;
-    ctx.moveTo(-bw, 0);
-    for (let y = 0; y > -bh; y -= 7) {
-      ctx.lineTo(-bw - 5, y - 3);
-      ctx.lineTo(-bw + 2, y - 6);
-    }
-    ctx.lineTo(0, -bh - 6);
-    for (let y = -bh; y < 0; y += 7) {
-      ctx.lineTo(bw + 5, y + 3);
-      ctx.lineTo(bw - 2, y + 6);
-    }
-    ctx.lineTo(bw, 0);
-    ctx.closePath(); ctx.fill();
-    // рожки
-    ctx.strokeStyle = "#e3b93f";
-    ctx.lineWidth = 3;
-    ctx.lineCap = "round";
+    ctx.ellipse(0, -bh * 0.45, 10, bh * 0.35, 0.2, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+
+    // Тонкие длинные ножки
     ctx.beginPath();
-    ctx.moveTo(-8, -bh - 4); ctx.lineTo(-13, -bh - 14);
-    ctx.moveTo(8, -bh - 4); ctx.lineTo(13, -bh - 14);
+    ctx.moveTo(-4, -bh * 0.2); ctx.lineTo(-8, 0);
+    ctx.moveTo(4, -bh * 0.2); ctx.lineTo(6, 0);
     ctx.stroke();
-    // глаза (злые, светятся)
-    const ey = -bh + 14;
-    ctx.fillStyle = "#ffe66d";
-    ctx.beginPath(); ctx.arc(-6, ey, 3.4, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(6, ey, 3.4, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = "#10231a";
-    ctx.beginPath(); ctx.arc(-6, ey, 1.5, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(6, ey, 1.5, 0, Math.PI * 2); ctx.fill();
-    // длинные руки-пальцы вперёд
-    ctx.strokeStyle = "#2d6a4f";
-    ctx.lineWidth = 3;
+
+    // Длинные тощие руки с длинными пальцами (щекочущие пальцы)
     ctx.beginPath();
-    ctx.moveTo(-14, -bh + 30); ctx.lineTo(-30, -bh + 34);
-    ctx.moveTo(-30, -bh + 34); ctx.lineTo(-36, -bh + 30);
-    ctx.moveTo(-30, -bh + 34); ctx.lineTo(-36, -bh + 38);
+    ctx.moveTo(-8, -bh * 0.6); ctx.lineTo(-24, -bh * 0.35); // рука влево
+    ctx.moveTo(-24, -bh * 0.35); ctx.lineTo(-30, -bh * 0.4); // длинные пальцы
+    ctx.moveTo(-24, -bh * 0.35); ctx.lineTo(-30, -bh * 0.28);
+    ctx.moveTo(8, -bh * 0.6); ctx.lineTo(24, -bh * 0.45); // рука вперед
+    ctx.moveTo(24, -bh * 0.45); ctx.lineTo(32, -bh * 0.5); // длинные пальцы
+    ctx.moveTo(24, -bh * 0.45); ctx.lineTo(32, -bh * 0.38);
     ctx.stroke();
+
+    // Голова и лицо
+    ctx.fillStyle = "#4a3b2c";
+    ctx.beginPath();
+    ctx.arc(0, -bh + 14, 12, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+
+    // Единственный рог на лбу (главный признак Шурале по Тукаю)
+    ctx.fillStyle = "#d4af37";
+    ctx.beginPath();
+    ctx.moveTo(0, -bh + 2);
+    ctx.lineTo(-3, -bh - 10);
+    ctx.lineTo(3, -bh - 10);
+    ctx.closePath();
+    ctx.fill();
+
+    // Злобные желтые глаза
+    ctx.fillStyle = "#ffcc00";
+    ctx.beginPath(); ctx.arc(-4, -bh + 13, 2.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(4, -bh + 13, 2.5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#000";
+    ctx.beginPath(); ctx.arc(-4, -bh + 13, 1, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(4, -bh + 13, 1, 0, Math.PI * 2); ctx.fill();
+
+    // Хитрая ухмылка
+    ctx.strokeStyle = "#111";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(0, -bh + 17, 6, 0.1, Math.PI - 0.1);
+    ctx.stroke();
+
     ctx.restore();
-    // маркер «пригнись» над высоким
+
     if (o.kind === "tall") {
       ctx.fillStyle = "rgba(227,185,63,0.9)";
       ctx.font = "bold 13px sans-serif";

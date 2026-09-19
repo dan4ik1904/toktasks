@@ -4,12 +4,12 @@ import { useState } from "react";
 import { useStore } from "@/store/use-store";
 import { useTheme } from "@/providers/theme-provider";
 import { useLang, type Lang } from "@/store/use-lang";
-import { Star, Zap, Flame, Trophy, RotateCcw, Sun, Moon, QrCode, Globe } from "lucide-react";
+import { Zap, Flame, Trophy, Sun, Moon, QrCode, Globe, VolumeX, Volume2 } from "lucide-react";
 import { PartnerModal } from "@/components/partner-modal";
 import { haptic } from "@/lib/telegram";
 
 export default function ProfilePage() {
-  const { name, setName, points, streak, hearts, completedTasks, achievements, reset } = useStore();
+  const { name, setName, points, streak, completedTasks, achievements, muted, toggleMute } = useStore();
   const { theme, toggleTheme } = useTheme();
   const { lang, setLang } = useLang();
   const [partnerOpen, setPartnerOpen] = useState(false);
@@ -32,7 +32,7 @@ export default function ProfilePage() {
         </button>
       </div>
 
-      {/* Выбор языка интерфейса (RU / EN / TT) */}
+      {/* Настройки: Язык интерфейса */}
       <div className="card" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.85rem", fontWeight: 700 }}>
           <Globe size={18} style={{ color: "var(--accent)" }} /> Язык / Language:
@@ -49,6 +49,21 @@ export default function ProfilePage() {
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Настройки: Беззвучный режим (озвучка ИИ) */}
+      <div className="card" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.85rem", fontWeight: 700 }}>
+          {muted ? <VolumeX size={18} style={{ color: "var(--danger)" }} /> : <Volume2 size={18} style={{ color: "var(--accent)" }} />}
+          Беззвучный режим (озвучка ИИ):
+        </div>
+        <button
+          onClick={() => { haptic("light"); toggleMute(); }}
+          className={"btn btn-sm " + (muted ? "btn-danger" : "btn-primary")}
+          style={{ padding: "0.3rem 0.8rem", fontSize: "0.75rem" }}
+        >
+          {muted ? "Вкл (Тишина)" : "Выкл (Звук)"}
+        </button>
       </div>
 
       {/* User card */}
@@ -115,12 +130,6 @@ export default function ProfilePage() {
         <QrCode size={20} style={{ color: "var(--gold)" }} />
       </button>
       <PartnerModal open={partnerOpen} onClose={() => setPartnerOpen(false)} />
-
-      {/* Reset */}
-      <button className="btn btn-ghost" onClick={() => { if (confirm("Сбросить весь прогресс?")) reset(); }}
-        style={{ color: "var(--danger)", fontSize: "0.75rem", justifyContent: "center" }}>
-        <RotateCcw size={14} /> Сбросить прогресс
-      </button>
     </div>
   );
 }

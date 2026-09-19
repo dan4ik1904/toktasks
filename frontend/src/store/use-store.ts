@@ -13,14 +13,17 @@ export interface Achievement {
   unlockedAt?: number;
 }
 
+export interface ChatMessage {
+  role: "user" | "assistant";
+  text: string;
+}
+
 interface AppState {
   tgId: string;
   name: string;
   points: number;
   streak: number;
   lastDay: string;
-  hearts: number;
-  heartsAt: number;
   dailyTasks: number;
   dailyTasksDay: string;
   completedTasks: string[];
@@ -28,6 +31,8 @@ interface AppState {
   achievements: Achievement[];
   gamesPlayed: number;
   userLevel: ProficiencyLevel | null;
+  muted: boolean;
+  chatMessages: ChatMessage[];
 
   setTgId: (id: string) => void;
   setName: (name: string) => void;
@@ -39,16 +44,13 @@ interface AppState {
   completeTopic: (topicSlug: string) => void;
   isTaskCompleted: (taskId: string) => boolean;
   isTopicCompleted: (topicSlug: string) => boolean;
-  setHearts: (n: number) => void;
-  spendHeart: () => boolean;
-  refillHearts: () => void;
   registerGame: () => void;
   unlockAchievement: (id: string) => void;
+  toggleMute: () => void;
+  setChatMessages: (msgs: ChatMessage[] | ((prev: ChatMessage[]) => ChatMessage[])) => void;
   syncFromServer: (data: Record<string, unknown>) => void;
   reset: () => void;
 }
-
-const MAX_HEARTS = 5;
 
 const DEFAULT_ACHIEVEMENTS: Achievement[] = [
   { id: "first-task", title: "Первый шаг", description: "Выполни первое задание", icon: "🎯", unlocked: false },
@@ -72,8 +74,6 @@ export const useStore = create<AppState>()(
       points: 0,
       streak: 0,
       lastDay: "",
-      hearts: MAX_HEARTS,
-      heartsAt: 0,
       dailyTasks: 0,
       dailyTasksDay: "",
       completedTasks: [],
@@ -81,10 +81,21 @@ export const useStore = create<AppState>()(
       achievements: [...DEFAULT_ACHIEVEMENTS],
       gamesPlayed: 0,
       userLevel: null,
+      muted: false,
+      chatMessages: [
+        {
+          role: "assistant",
+          text: "Иминлек! Мин — Ак Барс, твой ИИ-помощник в изучении татарского языка. Спроси меня о чем угодно, переводи фразы или общайся на любые темы!",
+        },
+      ],
 
       setTgId: (id) => set({ tgId: id }),
       setName: (name) => set({ name }),
       setUserLevel: (userLevel) => set({ userLevel }),
+      toggleMute: () => set((s) => ({ muted: !s.muted })),
+      setChatMessages: (msgs) => set((s) => ({
+        chatMessages: typeof msgs === "function" ? msgs(s.chatMessages) : msgs,
+      })),
 
       addPoints: (n) => set((s) => {
         const newPoints = s.points + n;
@@ -156,17 +167,6 @@ export const useStore = create<AppState>()(
       isTaskCompleted: (taskId) => get().completedTasks.includes(taskId),
       isTopicCompleted: (topicSlug) => get().completedTopics.includes(topicSlug),
 
-      setHearts: (n) => set({ hearts: Math.min(MAX_HEARTS, Math.max(0, n)) }),
-
-      spendHeart: () => {
-        const s = get();
-        if (s.hearts <= 0) return false;
-        set({ hearts: s.hearts - 1, heartsAt: Date.now() });
-        return true;
-      },
-
-      refillHearts: () => set({ hearts: MAX_HEARTS }),
-
       registerGame: () => set((s) => ({ gamesPlayed: s.gamesPlayed + 1 })),
 
       unlockAchievement: (id) => set((s) => {
@@ -179,15 +179,12 @@ export const useStore = create<AppState>()(
       syncFromServer: (data) => set((s) => ({
         points: (data.points as number) ?? s.points,
         streak: (data.streak as number) ?? s.streak,
-        hearts: (data.hearts as number) ?? s.hearts,
       })),
 
       reset: () => set({
         points: 0,
         streak: 0,
         lastDay: "",
-        hearts: MAX_HEARTS,
-        heartsAt: 0,
         dailyTasks: 0,
         dailyTasksDay: "",
         completedTasks: [],

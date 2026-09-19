@@ -1,20 +1,15 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import { Mic, Send, Volume2, Sparkles, User } from "lucide-react";
-import { useStore } from "@/store/use-store";
+import { Mic, Send, Volume2, Sparkles, User, VolumeX } from "lucide-react";
+import { useStore, type ChatMessage } from "@/store/use-store";
 import { haptic } from "@/lib/telegram";
 
 // ============================================================
 // Ак Барс — официальный ИИ-ассистент проекта TatarLearn.
-// Дружелюбный снежный барс с поддержкой татарского/русского языков,
-// голосовым вводом и культурными фактами.
+// Поддерживает персистентную историю чата, беззвучный режим (Mute)
+// и диалог на любую тему без шаблонных ограничений.
 // ============================================================
-
-interface Message {
-  role: "user" | "assistant";
-  text: string;
-}
 
 const QUICK_PROMPTS = [
   "Ничек хәлләрегез? (Как дела?)",
@@ -48,8 +43,8 @@ function audioBufferToWav(buffer: AudioBuffer): Blob {
   view.setUint16(22, numChannels, true);
   view.setUint32(24, sampleRate, true);
   view.setUint32(28, sampleRate * blockAlign, true);
-  view.setUint32(32, blockAlign, true);
-  view.setUint32(34, bitDepth, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, bitDepth, true);
   writeString(36, "data");
   view.setUint32(40, dataLength, true);
 
@@ -69,13 +64,7 @@ function audioBufferToWav(buffer: AudioBuffer): Blob {
 }
 
 export default function AkBarsAssistantPage() {
-  const { points } = useStore();
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: "assistant",
-      text: "Иминлек! Мин — Ак Барс, твой ИИ-помощник в изучении татарского языка. Спроси меня о грамматике, переводи слова или узнай факты о культуре Татарстана!",
-    },
-  ]);
+  const { points, chatMessages, setChatMessages, muted, toggleMute } = useStore();
   const [input, setInput] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
@@ -87,7 +76,7 @@ export default function AkBarsAssistantPage() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const playTts = async (text: string) => {
-    if (!text.trim()) return;
+    if (muted || !text.trim()) return;
     const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
     try {
       const res = await fetch(base + "/api/cat/tts?text=" + encodeURIComponent(text));
@@ -109,8 +98,8 @@ export default function AkBarsAssistantPage() {
     if (!textToSend) setInput("");
     haptic("light");
 
-    const newHistory = [...messages, { role: "user" as const, text: msg }];
-    setMessages(newHistory);
+    const newHistory: ChatMessage[] = [...chatMessages, { role: "user", text: msg }];
+    setChatMessages(newHistory);
     setIsThinking(true);
 
     try {
@@ -120,15 +109,18 @@ export default function AkBarsAssistantPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: msg,
-          history: newHistory.slice(-8).map((m) => ({ role: m.role, text: m.text })),
+          history: newHistory.slice(-12).map((m) => ({ role: m.role, text: m.text })),
         }),
       });
       const data = await res.json();
       const reply = data.reply || data.say || "Рәхмәт!";
-      setMessages((h) => [...h, { role: "assistant", text: reply }]);
-      setTimeout(() => playTts(reply), 200);
+      const updatedHistory: ChatMessage[] = [...newHistory, { role: "assistant", text: reply }];
+      setChatMessages(updatedHistory);
+      if (!muted) {
+        setTimeout(() => playTts(data.say || reply), 200);
+      }
     } catch {
-      setMessages((h) => [...h, { role: "assistant", text: "Гафу итегез, сервер җавап бирми." }]);
+      setChatMessages((h) => [...h, { role: "assistant", text: "Гафу итегез, сервер җавап бирми." }]);
     }
     setIsThinking(false);
   };
@@ -187,16 +179,16 @@ export default function AkBarsAssistantPage() {
         const userHeard = data.text || "🎤 Голосовое сообщение";
         const reply = data.reply || "Иминлек!";
 
-        setMessages((h) => [
+        setChatMessages((h) => [
           ...h,
           { role: "user", text: userHeard },
           { role: "assistant", text: reply },
         ]);
-        if (data.say) {
+        if (!muted && data.say) {
           setTimeout(() => playTts(data.say), 300);
         }
       } catch {
-        setMessages((h) => [...h, { role: "assistant", text: "Тавышны танып булмады." }]);
+        setChatMessages((h) => [...h, { role: "assistant", text: "Тавышны танып булмады." }]);
       }
       setIsThinking(false);
       audioChunksRef.current = [];
@@ -229,7 +221,7 @@ export default function AkBarsAssistantPage() {
     } catch {
       alert("Микрофон недоступен");
     }
-  }, [isRecording]);
+  }, [isRecording, muted, setChatMessages]);
 
   return (
     <div className="page-shell" style={{ maxWidth: 640 }}>
@@ -246,7 +238,17 @@ export default function AkBarsAssistantPage() {
             <h1 className="page-title" style={{ fontSize: "1.2rem" }}>Умный помощник</h1>
           </div>
         </div>
-        <div className="badge badge-gold">💰 {points}</div>
+        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+          <button
+            onClick={() => { haptic("light"); toggleMute(); }}
+            className="btn btn-ghost"
+            style={{ padding: "0.4rem", borderRadius: "50%" }}
+            title={muted ? "Включить звук" : "Беззвучный режим"}
+          >
+            {muted ? <VolumeX size={18} style={{ color: "var(--danger)" }} /> : <Volume2 size={18} style={{ color: "var(--gold)" }} />}
+          </button>
+          <div className="badge badge-gold">💰 {points}</div>
+        </div>
       </div>
 
       {/* Быстрые промпты */}
@@ -265,7 +267,7 @@ export default function AkBarsAssistantPage() {
 
       {/* Окно чата */}
       <div className="card" style={{ display: "flex", flexDirection: "column", gap: "0.8rem", minHeight: "48dvh", maxHeight: "58dvh", overflowY: "auto" }}>
-        {messages.map((m, idx) => (
+        {chatMessages.map((m, idx) => (
           <div
             key={idx}
             style={{

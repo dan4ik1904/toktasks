@@ -15,7 +15,7 @@ import { haptic } from "@/lib/telegram";
 // ============================================================
 
 export default function HomePage() {
-  const { name, points, streak, hearts, dailyTasks, completedTasks, achievements } = useStore();
+  const { name, points, streak, dailyTasks, completedTasks, achievements } = useStore();
   const [partnerOpen, setPartnerOpen] = useState(false);
   const recentAchievements = achievements.filter((a) => a.unlocked).slice(-3);
 
@@ -110,18 +110,6 @@ export default function HomePage() {
           <BookOpen size={20} style={{ color: "var(--accent)" }} />
           <div style={{ fontSize: "1.25rem", fontWeight: 800, marginTop: 4 }}>{completedTasks.length}</div>
           <div style={{ fontSize: "0.62rem", color: "var(--fg-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Уроков</div>
-        </div>
-      </div>
-
-      {/* Жизни */}
-      <div className="card" style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-        <span style={{ fontSize: "0.9rem", fontWeight: 700 }}>Жизни:</span>
-        <div style={{ display: "flex", gap: 6 }}>
-          {Array.from({ length: 5 }).map((_, i) => (
-            <span key={i} style={{ fontSize: "1.2rem", opacity: i < hearts ? 1 : 0.25, filter: i < hearts ? "none" : "grayscale(1)" }}>
-              ❤️
-            </span>
-          ))}
         </div>
       </div>
 
