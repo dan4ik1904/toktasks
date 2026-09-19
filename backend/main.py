@@ -233,7 +233,7 @@ async def cat_voice_chat(audio: UploadFile = File(...)) -> CatChatResponse:
     return CatChatResponse(reply=reply, say=tt, text=text, mood=mood)
 
 
-@app.post("/api/cat/tts")
+@app.get("/api/cat/tts")
 async def cat_tts(text: str = "") -> Response:
     if not text.strip():
         raise HTTPException(status_code=400, detail="пустой текст")
