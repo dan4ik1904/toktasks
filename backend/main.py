@@ -127,8 +127,14 @@ def api_hearts_refill(user_id: str = "demo", user: dict | None = Depends(telegra
     return store.refill_hearts(_uid(user, user_id))
 
 
+class ChatMsg(BaseModel):
+    role: str = "user"
+    text: str = ""
+
+
 class ChatRequest(BaseModel):
     message: str
+    history: list[ChatMsg] = []
 
 
 class ChatResponse(BaseModel):
@@ -139,5 +145,6 @@ class ChatResponse(BaseModel):
 
 @app.post("/api/assistant/chat", response_model=ChatResponse)
 async def assistant_chat(req: ChatRequest) -> ChatResponse:
-    ans = await ask_assistant(req.message)
+    hist = [{"role": h.role, "text": h.text} for h in req.history]
+    ans = await ask_assistant(req.message, hist)
     return ChatResponse(reply=ans["reply"], say=ans.get("say", ""), lang=ans.get("lang", "ru"))

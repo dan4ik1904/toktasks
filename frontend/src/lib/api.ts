@@ -444,8 +444,11 @@ export interface AssistantReply {
 }
 
 /** Вопрос Ярдәмче: сначала бэкенд, иначе исключение (фолбэк у вызывающего). */
-export async function assistantChatApi(message: string): Promise<AssistantReply> {
-  const res = await post("/api/assistant/chat", { message });
+export async function assistantChatApi(
+  message: string,
+  history: { role: "user" | "assistant"; text: string }[] = [],
+): Promise<AssistantReply> {
+  const res = await post("/api/assistant/chat", { message, history });
   const data = (await res.json()) as Partial<AssistantReply>;
   if (!data.reply) throw new Error("empty reply");
   return {

@@ -161,7 +161,8 @@ export default function AssistantPage() {
     setMessages((m) => [...m, { role: "user", text: question }]);
     setLoading(true);
     try {
-      const r = online ? await assistantChatApi(question) : localAssistant(question);
+      const hist = messages.slice(-6).map((m) => ({ role: m.role, text: m.text }));
+      const r = online ? await assistantChatApi(question, hist) : localAssistant(question);
       const say = r.say || extractSay(r.reply);
       setMessages((m) => [...m, { role: "assistant", text: r.reply, say }]);
     } catch {
