@@ -290,7 +290,7 @@ async def check_speak_task(req: SpeakCheckRequest) -> SpeakCheckResponse:
     if not req.heard.strip():
         return SpeakCheckResponse(hint_tt="Тыңла һәм кабатла!", hint_ru="Послушай и повтори!")
 
-    if settings.gigachat_client_id and settings.gigachat_client_secret:
+    if settings.gigachat_auth_key:
         try:
             result = await gigachat.chat(
                 messages=[

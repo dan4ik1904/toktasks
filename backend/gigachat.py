@@ -1,15 +1,32 @@
 """GigaChat OAuth2 клиент — автоматическое обновление токена.
 
-GigaChat API использует OAuth2: client_id + client_secret → access_token.
+GigaChat API использует Authorization Key (Base64) → access_token.
 Токен живёт 30 минут, обновляется автоматически.
+Для работы требуются сертификаты НУЦ Минцифры.
 """
 
 from __future__ import annotations
 
+import ssl
 import time
+import uuid
+
 import httpx
 
 from config import settings
+
+
+def _make_ssl_context() -> ssl.SSLContext:
+    ctx = ssl.create_default_context()
+    try:
+        ctx.load_verify_locations("/usr/local/share/ca-certificates/russian_trusted_root_ca_pem.crt")
+    except Exception:
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+    return ctx
+
+
+SSL_CTX = _make_ssl_context()
 
 
 class GigaChatClient:
@@ -17,20 +34,21 @@ class GigaChatClient:
         self._token: str | None = None
         self._expires_at: float = 0.0
 
-    @property
-    def auth_url(self) -> str:
-        return "https://ngs.sber.ru/auth/realms/angle-realm/protocol/openid-connect/token"
-
     async def _refresh_token(self) -> str:
-        async with httpx.AsyncClient(timeout=10) as client:
+        auth_key = settings.gigachat_auth_key
+        if not auth_key:
+            raise RuntimeError("GIGACHAT_AUTH_KEY не задан в .env")
+
+        async with httpx.AsyncClient(timeout=10, verify=SSL_CTX) as client:
             resp = await client.post(
-                self.auth_url,
-                data={
-                    "grant_type": "client_credentials",
-                    "client_id": settings.gigachat_client_id,
-                    "client_secret": settings.gigachat_client_secret,
+                "https://ngw.devices.sberbank.ru:9443/api/v2/oauth",
+                headers={
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "Accept": "application/json",
+                    "RqUID": str(uuid.uuid4()),
+                    "Authorization": f"Basic {auth_key}",
                 },
-                headers={"Content-Type": "application/x-www-form-urlencoded"},
+                data={"scope": "GIGACHAT_API_PERS"},
             )
             resp.raise_for_status()
             data = resp.json()
@@ -43,10 +61,16 @@ class GigaChatClient:
             return self._token
         return await self._refresh_token()
 
-    async def chat(self, messages: list[dict], model: str = "", temperature: float = 0.7, max_tokens: int = 500) -> str:
+    async def chat(
+        self,
+        messages: list[dict],
+        model: str = "",
+        temperature: float = 0.7,
+        max_tokens: int = 500,
+    ) -> str:
         token = await self.get_token()
         url = settings.gigachat_base_url.rstrip("/") + "/chat/completions"
-        async with httpx.AsyncClient(timeout=30) as client:
+        async with httpx.AsyncClient(timeout=30, verify=SSL_CTX) as client:
             resp = await client.post(
                 url,
                 headers={"Authorization": f"Bearer {token}"},

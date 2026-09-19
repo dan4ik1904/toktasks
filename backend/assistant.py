@@ -627,7 +627,7 @@ async def _ask_llm(message: str, lang: str, history: list[dict]) -> dict | None:
     from gigachat import gigachat
     from config import settings as cfg
 
-    use_gigachat = cfg.gigachat_client_id and cfg.gigachat_client_secret
+    use_gigachat = cfg.gigachat_auth_key
     if use_gigachat:
         msgs: list[dict] = [{"role": "system", "content": SYSTEM_PROMPT}]
         for m in history[-6:]:
@@ -751,7 +751,7 @@ async def _grade_llm(expected: str, heard: str) -> dict | None:
     from gigachat import gigachat
     from config import settings as cfg
 
-    use_gigachat = cfg.gigachat_client_id and cfg.gigachat_client_secret
+    use_gigachat = cfg.gigachat_auth_key
     if use_gigachat:
         try:
             text = await gigachat.chat(

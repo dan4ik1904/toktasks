@@ -30,11 +30,10 @@ class Settings(BaseSettings):
     tatsoft_stt_base: str = "https://tat-asr.api.translate.tatar"
     tatsoft_translate_base: str = "https://translate.tatar"
 
-    # GigaChat API (Сбер) — OAuth2 авторизация
-    gigachat_client_id: str = ""
-    gigachat_client_secret: str = ""
+    # GigaChat API (Сбер) — Authorization Key (Base64 из client_id:client_secret)
+    gigachat_auth_key: str = ""
     gigachat_base_url: str = "https://gigachat.devices.sberbank.ru/api/v1"
-    gigachat_model: str = "GigaChat-3-Ultra"
+    gigachat_model: str = "GigaChat"
 
     progress_file: str = "data/progress.json"
     db_file: str = "data/app.db"
