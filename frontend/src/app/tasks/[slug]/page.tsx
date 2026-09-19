@@ -43,6 +43,27 @@ export default function TopicPage() {
     return [...task.words].sort(() => Math.random() - 0.5);
   }, [currentIdx, task]);
 
+  const playTtsAudio = async (text: string) => {
+    const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    try {
+      const res = await fetch(base + "/api/cat/tts?text=" + encodeURIComponent(text));
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        audio.play().catch(() => {});
+        return;
+      }
+    } catch {
+      // fallback
+    }
+    if ("speechSynthesis" in window) {
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = "ru-RU";
+      speechSynthesis.speak(u);
+    }
+  };
+
   const checkAnswer = useCallback(async (answer: string) => {
     if (showResult) return;
     setSelected(answer);
@@ -56,7 +77,6 @@ export default function TopicPage() {
         completeTopic(topic.slug);
       }
     } else {
-      // Запрашиваем подробный разбор ошибки у ИИ (особенно для аудирования / listen и других)
       const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       try {
         const res = await fetch(base + "/api/task/explain-error", {
@@ -318,13 +338,7 @@ export default function TopicPage() {
           <p style={{ fontWeight: 600, fontSize: "0.95rem" }}>{task.question}</p>
           <button
             className="btn btn-gold"
-            onClick={() => {
-              if ("speechSynthesis" in window) {
-                const u = new SpeechSynthesisUtterance(task.answer);
-                u.lang = "ru-RU";
-                speechSynthesis.speak(u);
-              }
-            }}
+            onClick={() => playTtsAudio(task.answer)}
           >
             🔊 Прослушать аудио
           </button>
