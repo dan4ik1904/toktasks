@@ -4,18 +4,18 @@ import "./globals.css";
 import { TelegramProvider } from "@/providers/telegram-provider";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { TabBar } from "@/components/tab-bar";
+import { ClientInitializer } from "@/components/client-initializer";
 
 export const metadata: Metadata = {
-  title: "TATARCHA — учим татарский с котом",
+  title: "TATARCHA — Татарча өйрәнәбез (TatarLearn)",
   description:
-    "Telegram Web App для изучения татарского языка: задания, мини-игры, AI-кот и магазин наград.",
+    "Telegram Web App для изучения татарского языка с ИИ-ассистентом Ак Барс и древом уроков.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="tt" data-theme="dark" className="h-full antialiased">
       <head>
-        {/* Шрифты: дисплей Unbounded + текст Manrope, с системным фолбэком */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
@@ -26,6 +26,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className="mx-auto flex min-h-dvh w-full max-w-md flex-col">
         <TelegramProvider>
           <ThemeProvider>
+            <ClientInitializer />
             <div className="mesh-bg" aria-hidden="true" />
             <div className="ornament-bg" aria-hidden="true" />
             <div className="relative z-[1] flex flex-1 flex-col">{children}</div>

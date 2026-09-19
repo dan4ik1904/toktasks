@@ -2,38 +2,67 @@
 
 import { useState } from "react";
 import { useStore } from "@/store/use-store";
-import { Sparkles, CheckCircle2 } from "lucide-react";
+import { Sparkles, CheckCircle2, Award } from "lucide-react";
 import { haptic } from "@/lib/telegram";
+
+export type ProficiencyLevel = "beginner" | "elementary" | "intermediate" | "advanced";
+
+export const LEVEL_NAMES: Record<ProficiencyLevel, { title: string; titleTt: string; desc: string }> = {
+  beginner: { title: "Начинающий", titleTt: "Бала / Әлифба", desc: "Алфавит, правила чтения и базовые приветствия" },
+  elementary: { title: "Базовый", titleTt: "Үсмер / Гади сүзләр", desc: "Простые фразы, обиходные слова и числа" },
+  intermediate: { title: "Средний", titleTt: "Олы / Сөйләшү", desc: "Грамматика, времена глаголов и диалоги" },
+  advanced: { title: "Продвинутый", titleTt: "Мастер / Ирекле", desc: "Сложные конструкции, идиомы и свободная речь" },
+};
 
 const PLACEMENT_QUESTIONS = [
   {
+    level: "beginner",
     q: "Как переводится слово «Сәлам»?",
     options: ["Привет", "Пока", "Спасибо", "До свидания"],
     answer: "Привет",
   },
   {
-    q: "Выберите правильный перевод: «Мин татарча сөйләшәм»",
-    options: ["Я люблю татарский", "Я говорю по-татарски", "Я учу татарский", "Я из Татарстана"],
-    answer: "Я говорю по-татарски",
+    q: "Какой звук обозначает буква «Ә» в татарском языке?",
+    options: ["Мягкий А (как в cat)", "Твердый О", "Носовой Н", "Глухой Ш"],
+    answer: "Мягкий А (как в cat)",
   },
   {
-    q: "Какой звук обозначает буква «Ә» в татарском языке?",
-    options: ["Мягкий А (как в английском cat)", "Твердый О", "Носовой Н", "Глухой Ш"],
-    answer: "Мягкий А (как в английском cat)",
+    level: "elementary",
+    q: "Выберите правильный перевод: «Мин Казаннан»",
+    options: ["Я из Казани", "Я люблю Казань", "Я еду в Казань", "Это Казань"],
+    answer: "Я из Казани",
+  },
+  {
+    q: "Как сказать по-татарски «Спасибо»?",
+    options: ["Рәхмәт", "Сау булыгыз", "Хәерле көн", "Гафу итегез"],
+    answer: "Рәхмәт",
+  },
+  {
+    level: "intermediate",
+    q: "Выберите правильную форму прошедшего времени глагола «бару» (идти) для местоимения «мин» (я):",
+    options: ["мин бардым", "мин барам", "мин барачакмын", "мин барырмын"],
+    answer: "мин бардым",
+  },
+  {
+    q: "Что означает фраза «Күрешкәнче!»?",
+    options: ["До свидания / Увидимся!", "Приятного аппетита!", "Доброе утро!", "С днем рождения!"],
+    answer: "До свидания / Увидимся!",
+  },
+  {
+    level: "advanced",
+    q: "Выберите татарскую пословицу, означающую «Знание — свет»:",
+    options: ["Белем — нур, белмәү — хур", "Дуслык — иң зур байлык", "Эш беткәч — уйнарга ярый", "Тел — тарих көзгесе"],
+    answer: "Белем — нур, белмәү — хур",
   },
 ];
 
 export function PlacementModal() {
-  const { points, addPoints, completeTopic } = useStore();
-  const [open, setOpen] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return !localStorage.getItem("tatarcha-placement-done");
-  });
+  const { userLevel, setUserLevel, addPoints, completeTopic } = useStore();
   const [step, setStep] = useState(0);
   const [score, setScore] = useState(0);
-  const [finished, setFinished] = useState(false);
+  const [resultLevel, setResultLevel] = useState<ProficiencyLevel | null>(null);
 
-  if (!open) return null;
+  if (userLevel !== null) return null; // Уже пройден
 
   const handleAnswer = (opt: string) => {
     haptic("medium");
@@ -44,44 +73,66 @@ export function PlacementModal() {
     if (step < PLACEMENT_QUESTIONS.length - 1) {
       setStep(step + 1);
     } else {
-      setFinished(true);
-      localStorage.setItem("tatarcha-placement-done", "true");
-      if (newScore >= 2) {
-        addPoints(50);
+      // Определяем категорию уровня по баллам (0-2: beginner, 3-4: elementary, 5-6: intermediate, 7: advanced)
+      let lvl: ProficiencyLevel = "beginner";
+      if (newScore >= 7) lvl = "advanced";
+      else if (newScore >= 5) lvl = "intermediate";
+      else if (newScore >= 3) lvl = "elementary";
+      else lvl = "beginner";
+
+      setResultLevel(lvl);
+      setUserLevel(lvl);
+      addPoints(100);
+
+      // Авто-закрытие и авто-прохождение легких тем в зависимости от уровня
+      if (lvl === "advanced") {
         completeTopic("alphabet");
         completeTopic("greetings");
+        completeTopic("family");
+      } else if (lvl === "intermediate") {
+        completeTopic("alphabet");
+        completeTopic("greetings");
+      } else if (lvl === "elementary") {
+        completeTopic("alphabet");
       }
     }
   };
 
-  const finish = () => {
-    haptic("heavy");
-    setOpen(false);
-  };
-
   return (
-    <div className="modal-backdrop">
-      <div className="modal-sheet animate-slide-up" style={{ textAlign: "center", padding: "1.5rem" }}>
-        <div style={{ width: 64, height: 64, borderRadius: "50%", background: "var(--gold-soft)", border: "2px solid var(--gold)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "2rem", margin: "0 auto 1rem" }}>
+    <div style={{
+      position: "fixed",
+      inset: 0,
+      zIndex: 9999,
+      background: "var(--bg)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: "1.5rem",
+    }}>
+      <div className="card animate-slide-up" style={{ width: "100%", maxWidth: 520, textAlign: "center", padding: "2rem 1.5rem", border: "2px solid var(--gold)" }}>
+        <div style={{ width: 72, height: 72, borderRadius: "50%", background: "var(--gold-soft)", border: "2px solid var(--gold)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "2.5rem", margin: "0 auto 1rem" }}>
           🐆
         </div>
-        <div className="badge badge-gold" style={{ marginBottom: 8 }}>
-          <Sparkles size={12} /> Ак Барс • Тест уровня
+        <div className="badge badge-gold" style={{ marginBottom: 10 }}>
+          <Sparkles size={12} /> Ак Барс • Обязательное тестирование
         </div>
-        {!finished ? (
+
+        {!resultLevel ? (
           <>
-            <h2 className="font-display" style={{ fontSize: "1.1rem", marginBottom: 6 }}>Определим ваш уровень татарского</h2>
-            <p style={{ fontSize: "0.8rem", color: "var(--fg-muted)", marginBottom: 16 }}>
-              Вопрос {step + 1} из {PLACEMENT_QUESTIONS.length}
+            <h1 className="font-display" style={{ fontSize: "1.25rem", marginBottom: 6 }}>Определяем ваш уровень</h1>
+            <p style={{ fontSize: "0.85rem", color: "var(--fg-muted)", marginBottom: 20 }}>
+              Вопрос {step + 1} из {PLACEMENT_QUESTIONS.length}. Без этого теста продолжение работы невозможно.
             </p>
-            <p style={{ fontWeight: 700, fontSize: "0.95rem", marginBottom: 16 }}>{PLACEMENT_QUESTIONS[step].q}</p>
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+            <p style={{ fontWeight: 700, fontSize: "1rem", marginBottom: 20, lineHeight: 1.4 }}>
+              {PLACEMENT_QUESTIONS[step].q}
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
               {PLACEMENT_QUESTIONS[step].options.map((opt, i) => (
                 <button
                   key={i}
                   className="btn btn-ghost"
                   onClick={() => handleAnswer(opt)}
-                  style={{ justifyContent: "center", textAlign: "center", padding: "0.8rem" }}
+                  style={{ justifyContent: "center", textAlign: "center", padding: "0.9rem", fontSize: "0.95rem" }}
                 >
                   {opt}
                 </button>
@@ -89,16 +140,25 @@ export function PlacementModal() {
             </div>
           </>
         ) : (
-          <>
-            <CheckCircle2 size={48} style={{ color: "var(--success)", margin: "0 auto 8px" }} />
-            <h2 className="font-display" style={{ fontSize: "1.2rem", marginBottom: 6 }}>Тест пройден!</h2>
-            <p style={{ fontSize: "0.85rem", color: "var(--fg-muted)", marginBottom: 16 }}>
-              {score >= 2 ? "Отлично! Вам открыты базовые и средние темы, +50 бонусов 💰" : "Начнем с самого начала: алфавит и основы фонетики."}
+          <div className="animate-pop">
+            <CheckCircle2 size={56} style={{ color: "var(--success)", margin: "0 auto 12px" }} />
+            <h2 className="font-display" style={{ fontSize: "1.35rem", marginBottom: 8 }}>Тест успешно завершен!</h2>
+            <div style={{ padding: "1rem", borderRadius: "1rem", background: "var(--surface-2)", margin: "1rem 0" }}>
+              <div style={{ fontSize: "0.75rem", color: "var(--fg-muted)", textTransform: "uppercase" }}>Ваш зафиксированный уровень:</div>
+              <div style={{ fontWeight: 800, fontSize: "1.2rem", color: "var(--gold)", marginTop: 4 }}>
+                {LEVEL_NAMES[resultLevel].title} ({LEVEL_NAMES[resultLevel].titleTt})
+              </div>
+              <p style={{ fontSize: "0.8rem", color: "var(--fg-muted)", marginTop: 4 }}>
+                {LEVEL_NAMES[resultLevel].desc}
+              </p>
+            </div>
+            <p style={{ fontSize: "0.85rem", color: "var(--fg-muted)", marginBottom: 20 }}>
+              Учебная программа и ИИ-репетитор настроены под ваш уровень. Бонус: +100 XP 💰
             </p>
-            <button className="btn btn-primary" onClick={finish} style={{ width: "100%" }}>
-              Начать обучение
+            <button className="btn btn-primary" onClick={() => window.location.reload()} style={{ width: "100%", padding: "0.9rem" }}>
+              Войти в приложение
             </button>
-          </>
+          </div>
         )}
       </div>
     </div>

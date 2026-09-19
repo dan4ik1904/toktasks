@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { ProficiencyLevel } from "@/components/placement-modal";
 
 export interface Achievement {
   id: string;
@@ -26,9 +27,11 @@ interface AppState {
   completedTopics: string[];
   achievements: Achievement[];
   gamesPlayed: number;
+  userLevel: ProficiencyLevel | null;
 
   setTgId: (id: string) => void;
   setName: (name: string) => void;
+  setUserLevel: (lvl: ProficiencyLevel) => void;
   addPoints: (n: number) => void;
   spendPoints: (n: number) => boolean;
   touchToday: () => void;
@@ -61,10 +64,6 @@ function todayStr(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-function levelOf(points: number): number {
-  return Math.min(50, Math.floor(points / 100) + 1);
-}
-
 export const useStore = create<AppState>()(
   persist(
     (set, get) => ({
@@ -81,9 +80,11 @@ export const useStore = create<AppState>()(
       completedTopics: [],
       achievements: [...DEFAULT_ACHIEVEMENTS],
       gamesPlayed: 0,
+      userLevel: null,
 
       setTgId: (id) => set({ tgId: id }),
       setName: (name) => set({ name }),
+      setUserLevel: (userLevel) => set({ userLevel }),
 
       addPoints: (n) => set((s) => {
         const newPoints = s.points + n;
@@ -193,6 +194,7 @@ export const useStore = create<AppState>()(
         completedTopics: [],
         achievements: [...DEFAULT_ACHIEVEMENTS],
         gamesPlayed: 0,
+        userLevel: null,
       }),
     }),
     { name: "tatarcha-store" },
