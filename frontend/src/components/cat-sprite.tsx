@@ -6,31 +6,39 @@ interface CatSpriteProps {
   cat: CatState;
   size?: number;
   onClick?: () => void;
-  /** Пол питомца: у Кыз — бантик, у Малай — без */
+  /** Пол питомца: у Кыз — бантик на ушке */
   gender?: PetGender;
 }
 
+// ============================================================
+// Кот-тамагочи: аккуратный SVG с правильной анатомией.
+// Голова — круг (70,56) r=30; мордочка строго внутри неё:
+// глаза y=56, нос y=70, рот y=74–78. Тюбетейка сидит сверху,
+// уши по бокам, тело с животиком и лапками — снизу.
+// ============================================================
+
 export function CatSprite({ cat, size = 160, onClick, gender = null }: CatSpriteProps) {
-  // «Смена цвета волос» из Кибета — розовая шёрстка
+  // «Розовая шёрстка» из Кибета
   const isPinkFur = cat.outfit === "hair";
   const bodyColor = isPinkFur ? "#8a5a7a" : "#2A3A5C";
-  const bellyColor = isPinkFur ? "#a5769a" : "#3A4E72";
-  const eyeColor =
-    cat.mood === "happy" || cat.mood === "playing" ? "#D4AF37" : "#8892B0";
-  const tubeteikaColor = "#0F5132";
-  // Золотая тюбетейка из Кибета — нарядная
-  const isGoldTubeteika = cat.outfit === "tubeteika-gold";
-  const tubeteikaGold = isGoldTubeteika ? "#FFF3C4" : "#D4AF37";
-  const eyeY = cat.mood === "sleeping" ? 8 : 6;
+  const bellyColor = isPinkFur ? "#b58aa8" : "#3D5175";
+  const pawDark = isPinkFur ? "#6e4461" : "#1E2C46";
 
+  const eyeColor =
+    cat.mood === "happy" || cat.mood === "playing" ? "#E8C84A" : "#A9BCD0";
+
+  const isGoldTubeteika = cat.outfit === "tubeteika-gold";
+  const tubColor = isGoldTubeteika ? "#B8912B" : "#0F5132";
+  const tubGold = isGoldTubeteika ? "#FFF3C4" : "#D4AF37";
+
+  // Анимация всего кота по настроению
   let animStyle = "";
-  if (cat.mood === "happy") animStyle = "cat-bounce 1.5s ease-in-out infinite";
-  else if (cat.mood === "playing")
-    animStyle = "cat-wiggle 1.2s ease-in-out infinite";
-  else if (cat.mood === "hungry")
-    animStyle = "cat-hungry 2s ease-in-out infinite";
-  else if (cat.mood === "sleeping") animStyle = "";
-  else animStyle = "cat-blink 4s ease-in-out infinite";
+  if (cat.mood === "happy") animStyle = "cat-bounce 1.6s ease-in-out infinite";
+  else if (cat.mood === "playing") animStyle = "cat-wiggle 1.2s ease-in-out infinite";
+  else if (cat.mood === "hungry") animStyle = "cat-hungry 2.2s ease-in-out infinite";
+
+  const sleeping = cat.mood === "sleeping";
+  const joyful = cat.mood === "happy" || cat.mood === "playing";
 
   return (
     <div
@@ -41,137 +49,176 @@ export function CatSprite({ cat, size = 160, onClick, gender = null }: CatSprite
         position: "relative",
         cursor: onClick ? "pointer" : undefined,
         animation: animStyle,
-        filter: "drop-shadow(0 0 20px rgba(212,175,55,0.2))",
+        filter: "drop-shadow(0 10px 22px rgba(0,0,0,0.35))",
       }}
     >
-      <svg viewBox="0 0 120 120" width={size} height={size}>
-        {/* Body */}
-        <ellipse cx="60" cy="78" rx="32" ry="28" fill={bodyColor} />
-        <ellipse cx="60" cy="82" rx="22" ry="18" fill={bellyColor} />
-
-        {/* Paws */}
-        <ellipse cx="42" cy="100" rx="10" ry="6" fill={bodyColor} />
-        <ellipse cx="78" cy="100" rx="10" ry="6" fill={bodyColor} />
-        <circle cx="38" cy="100" r="2" fill={bellyColor} />
-        <circle cx="42" cy="98" r="2" fill={bellyColor} />
-        <circle cx="46" cy="100" r="2" fill={bellyColor} />
-        <circle cx="74" cy="100" r="2" fill={bellyColor} />
-        <circle cx="78" cy="98" r="2" fill={bellyColor} />
-        <circle cx="82" cy="100" r="2" fill={bellyColor} />
-
-        {/* Tail */}
+      <svg viewBox="0 0 140 150" width={size} height={size}>
+        {/* Хвост (за телом) */}
         <path
-          d="M 88 80 Q 105 65 100 45 Q 98 40 92 45 Q 88 55 85 72"
+          d="M 102 118 Q 128 110 124 82 Q 123 75 116 79 Q 110 90 100 106"
           fill="none"
           stroke={bodyColor}
-          strokeWidth="6"
+          strokeWidth="8"
           strokeLinecap="round"
         />
+        <circle cx="121" cy="80" r="5" fill={bellyColor} />
 
-        {/* Head */}
-        <circle cx="60" cy="48" r="24" fill={bodyColor} />
+        {/* Задние лапки */}
+        <ellipse cx="50" cy="140" rx="13" ry="7" fill={pawDark} />
+        <ellipse cx="90" cy="140" rx="13" ry="7" fill={pawDark} />
 
-        {/* Ears */}
-        <polygon points="40,32 36,12 50,26" fill={bodyColor} />
-        <polygon points="80,32 84,12 70,26" fill={bodyColor} />
-        <polygon points="42,30 39,16 50,27" fill={bellyColor} opacity="0.5" />
-        <polygon points="78,30 81,16 70,27" fill={bellyColor} opacity="0.5" />
+        {/* Тело */}
+        <ellipse cx="70" cy="112" rx="36" ry="30" fill={bodyColor} />
+        <ellipse cx="70" cy="118" rx="24" ry="20" fill={bellyColor} />
 
-        {/* Tubeteika */}
-        <ellipse cx="60" cy="28" rx="20" ry="8" fill={isGoldTubeteika ? "#C9A430" : tubeteikaColor} />
-        <rect x="42" y="20" width="36" height="10" rx="4" fill={isGoldTubeteika ? "#C9A430" : tubeteikaColor} />
-        <line x1="48" y1="22" x2="48" y2="28" stroke={tubeteikaGold} strokeWidth="1.5" opacity="0.6" />
-        <line x1="56" y1="21" x2="56" y2="29" stroke={tubeteikaGold} strokeWidth="1.5" opacity="0.6" />
-        <line x1="64" y1="21" x2="64" y2="29" stroke={tubeteikaGold} strokeWidth="1.5" opacity="0.6" />
-        <line x1="72" y1="22" x2="72" y2="28" stroke={tubeteikaGold} strokeWidth="1.5" opacity="0.6" />
-        <circle cx="60" cy="20" r="3" fill={tubeteikaGold} />
-
-        {/* Бантик для Кыз */}
-        {gender === "kyz" && (
+        {/* Камзол поверх тела */}
+        {cat.outfit === "kamzol" && (
           <g>
-            <circle cx="86" cy="18" r="5" fill="#E86A92" />
-            <circle cx="94" cy="22" r="5" fill="#E86A92" />
-            <circle cx="90" cy="20" r="2.5" fill="#C1272D" />
+            <rect x="44" y="92" width="52" height="36" rx="10" fill="#8B0000" opacity="0.92" />
+            <rect x="68.5" y="92" width="3" height="36" fill={tubGold} />
+            <circle cx="70" cy="102" r="2.5" fill={tubGold} />
+            <circle cx="70" cy="112" r="2.5" fill={tubGold} />
+            <circle cx="70" cy="122" r="2.5" fill={tubGold} />
           </g>
         )}
-        {cat.mood === "sleeping" ? (
-          <>
-            <line x1="48" y1={eyeY} x2="55" y2={eyeY} stroke={eyeColor} strokeWidth="2" strokeLinecap="round" />
-            <line x1="65" y1={eyeY} x2="72" y2={eyeY} stroke={eyeColor} strokeWidth="2" strokeLinecap="round" />
-          </>
-        ) : (
-          <>
-            <circle cx="50" cy={eyeY} r="3.5" fill={eyeColor} />
-            <circle cx="70" cy={eyeY} r="3.5" fill={eyeColor} />
-            <circle cx="51" cy={eyeY - 1} r="1.2" fill="#fff" />
-            <circle cx="71" cy={eyeY - 1} r="1.2" fill="#fff" />
-          </>
-        )}
 
-        {/* Nose */}
-        <ellipse cx="60" cy="12" rx="2.5" ry="2" fill="#E88" />
+        {/* Передние лапки */}
+        <rect x="53" y="122" width="15" height="22" rx="7.5" fill={bodyColor} />
+        <rect x="72" y="122" width="15" height="22" rx="7.5" fill={bodyColor} />
+        <circle cx="60.5" cy="140" r="2" fill={bellyColor} />
+        <circle cx="79.5" cy="140" r="2" fill={bellyColor} />
 
-        {/* Mouth */}
-        {cat.mood === "happy" || cat.mood === "playing" ? (
-          <path d="M 55 14 Q 60 18 65 14" fill="none" stroke="#E88" strokeWidth="1.2" strokeLinecap="round" />
-        ) : cat.mood === "hungry" ? (
-          <path d="M 55 16 Q 60 13 65 16" fill="none" stroke="#E88" strokeWidth="1.2" strokeLinecap="round" />
-        ) : (
-          <line x1="57" y1="14" x2="63" y2="14" stroke="#E88" strokeWidth="1.2" strokeLinecap="round" />
-        )}
-
-        {/* Whiskers */}
-        <line x1="35" y1="10" x2="48" y2="12" stroke="#8892B0" strokeWidth="0.8" opacity="0.5" />
-        <line x1="35" y1="14" x2="48" y2="14" stroke="#8892B0" strokeWidth="0.8" opacity="0.5" />
-        <line x1="72" y1="12" x2="85" y2="10" stroke="#8892B0" strokeWidth="0.8" opacity="0.5" />
-        <line x1="72" y1="14" x2="85" y2="14" stroke="#8892B0" strokeWidth="0.8" opacity="0.5" />
-
-        {/* Sleeping Zzz */}
-        {cat.mood === "sleeping" && (
-          <text x="85" y="35" fill="#D4AF37" fontSize="12" fontWeight="bold" opacity="0.7"
-            style={{ animation: "cat-zzz 2s ease-in-out infinite" }}>
-            Z
-          </text>
-        )}
-
-        {/* Outfit overlay: Kamzol */}
-        {cat.outfit === "kamzol" && (
-          <rect x="42" y="65" width="36" height="20" rx="4" fill="#8B0000" opacity="0.8" />
-        )}
-
-        {/* Outfit overlay: Ichigi (сапожки на лапках) */}
+        {/* Ичиги — сапожки на лапках */}
         {cat.outfit === "ichigi" && (
-          <>
-            <ellipse cx="42" cy="102" rx="11" ry="7" fill="#8B0000" />
-            <ellipse cx="78" cy="102" rx="11" ry="7" fill="#8B0000" />
-            <rect x="31" y="96" width="22" height="4" rx="2" fill="#D4AF37" />
-            <rect x="67" y="96" width="22" height="4" rx="2" fill="#D4AF37" />
-          </>
+          <g>
+            <rect x="51" y="132" width="19" height="12" rx="5" fill="#8B0000" />
+            <rect x="70" y="132" width="19" height="12" rx="5" fill="#8B0000" />
+            <rect x="51" y="132" width="19" height="3.5" rx="1.5" fill={tubGold} />
+            <rect x="70" y="132" width="19" height="3.5" rx="1.5" fill={tubGold} />
+          </g>
         )}
 
-        {/* Outfit overlay: Platok */}
+        {/* Уши */}
+        <polygon points="48,38 40,10 66,28" fill={bodyColor} />
+        <polygon points="92,38 100,10 74,28" fill={bodyColor} />
+        <polygon points="49,33 44,15 61,28" fill={bellyColor} opacity="0.7" />
+        <polygon points="91,33 96,15 79,28" fill={bellyColor} opacity="0.7" />
+
+        {/* Голова */}
+        <circle cx="70" cy="56" r="30" fill={bodyColor} />
+
+        {/* Щёчки-румянец */}
+        <ellipse cx="50" cy="66" rx="5.5" ry="3.2" fill="#E88" opacity="0.4" />
+        <ellipse cx="90" cy="66" rx="5.5" ry="3.2" fill="#E88" opacity="0.4" />
+
+        {/* Глаза: внутри головы, y=56 */}
+        {sleeping ? (
+          <g stroke="#A9BCD0" strokeWidth="2.4" strokeLinecap="round">
+            <line x1="51" y1="56" x2="64" y2="56" />
+            <line x1="76" y1="56" x2="89" y2="56" />
+          </g>
+        ) : joyful ? (
+          // радостные закрытые глазки-дуги
+          <g fill="none" stroke={eyeColor} strokeWidth="2.6" strokeLinecap="round">
+            <path d="M 52 58 Q 58 50 64 58" />
+            <path d="M 76 58 Q 82 50 88 58" />
+          </g>
+        ) : (
+          // открытые глаза с морганием
+          <g style={{ animation: "cat-blink 4.5s ease-in-out infinite", transformBox: "fill-box", transformOrigin: "center" }}>
+            <circle cx="58" cy="56" r="5.4" fill={eyeColor} />
+            <circle cx="82" cy="56" r="5.4" fill={eyeColor} />
+            <circle cx="58" cy="56" r="2.4" fill="#10231a" />
+            <circle cx="82" cy="56" r="2.4" fill="#10231a" />
+            <circle cx="59.6" cy="54.2" r="1.3" fill="#fff" />
+            <circle cx="83.6" cy="54.2" r="1.3" fill="#fff" />
+          </g>
+        )}
+
+        {/* Слезинка, если голоден */}
+        {cat.mood === "hungry" && (
+          <path d="M 90 64 q 4 6 0 9 q -4 -3 0 -9" fill="#7EC8F7" opacity="0.9" />
+        )}
+
+        {/* Нос-треугольник */}
+        <path d="M 66 69 L 74 69 L 70 73.5 Z" fill="#F0908C" stroke="#C96A66" strokeWidth="0.8" strokeLinejoin="round" />
+
+        {/* Рот */}
+        {joyful ? (
+          <path d="M 70 73.5 Q 70 78 64.5 78 M 70 73.5 Q 70 78 75.5 78" fill="none" stroke="#C96A66" strokeWidth="1.6" strokeLinecap="round" />
+        ) : cat.mood === "hungry" ? (
+          <path d="M 65 80 Q 70 77.5 75 80" fill="none" stroke="#C96A66" strokeWidth="1.6" strokeLinecap="round" />
+        ) : sleeping ? (
+          <circle cx="70" cy="77" r="1.4" fill="#C96A66" />
+        ) : (
+          <path d="M 66 77.5 Q 70 79.5 74 77.5" fill="none" stroke="#C96A66" strokeWidth="1.6" strokeLinecap="round" />
+        )}
+
+        {/* Усы */}
+        <g stroke="#8fa3bd" strokeWidth="1" opacity="0.65" strokeLinecap="round">
+          <line x1="26" y1="58" x2="46" y2="61" />
+          <line x1="26" y1="65" x2="46" y2="65" />
+          <line x1="28" y1="72" x2="46" y2="69" />
+          <line x1="114" y1="58" x2="94" y2="61" />
+          <line x1="114" y1="65" x2="94" y2="65" />
+          <line x1="112" y1="72" x2="94" y2="69" />
+        </g>
+
+        {/* Тюбетейка: сидит на макушке (верх головы y=26) */}
+        <rect x="44" y="16" width="52" height="15" rx="7" fill={tubColor} />
+        <ellipse cx="70" cy="31" rx="26" ry="8" fill={tubColor} />
+        <g stroke={tubGold} strokeWidth="1.6" opacity="0.75">
+          <line x1="56" y1="18" x2="56" y2="29" />
+          <line x1="64" y1="17" x2="64" y2="30" />
+          <line x1="72" y1="17" x2="72" y2="30" />
+          <line x1="80" y1="18" x2="80" y2="29" />
+        </g>
+        <circle cx="70" cy="16" r="3.6" fill={tubGold} />
+        <circle cx="68.8" cy="14.8" r="1.1" fill="#fff" opacity="0.8" />
+
+        {/* Яулык (платок): лобная лента + завязки */}
         {cat.outfit === "platok" && (
-          <>
-            <path d="M 36 36 Q 60 44 84 36 Q 84 52 60 56 Q 36 52 36 36Z" fill="#D4AF37" opacity="0.4" />
-          </>
+          <g>
+            <path d="M 42 42 Q 70 33 98 42" fill="none" stroke={tubGold} strokeWidth="6" strokeLinecap="round" opacity="0.55" />
+            <path d="M 48 82 Q 44 96 50 108" fill="none" stroke={tubGold} strokeWidth="5" strokeLinecap="round" opacity="0.7" />
+            <path d="M 92 82 Q 96 96 90 108" fill="none" stroke={tubGold} strokeWidth="5" strokeLinecap="round" opacity="0.7" />
+          </g>
+        )}
+
+        {/* Бантик для Кыз — на правом ушке */}
+        {gender === "kyz" && (
+          <g>
+            <circle cx="98" cy="14" r="5.5" fill="#E86A92" />
+            <circle cx="107" cy="18" r="5.5" fill="#E86A92" />
+            <circle cx="102.5" cy="16" r="2.8" fill="#C1272D" />
+          </g>
+        )}
+
+        {/* Zzz во сне */}
+        {sleeping && (
+          <g fill="#E8C84A" fontWeight="bold" opacity="0.85" style={{ animation: "cat-zzz 2.2s ease-in-out infinite" }}>
+            <text x="104" y="34" fontSize="13">Z</text>
+            <text x="112" y="24" fontSize="10">z</text>
+          </g>
         )}
       </svg>
 
-      {/* Mood indicator */}
+      {/* Индикатор настроения */}
       <div
         style={{
           position: "absolute",
-          bottom: 0,
-          right: 0,
-          width: 28,
-          height: 28,
+          bottom: 2,
+          right: 2,
+          width: 30,
+          height: 30,
           borderRadius: "50%",
           background: "var(--surface)",
           border: "2px solid var(--border)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontSize: 14,
+          fontSize: 15,
+          boxShadow: "var(--card-shadow)",
         }}
       >
         {cat.mood === "happy" && "😊"}

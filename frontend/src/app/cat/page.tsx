@@ -1,9 +1,24 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
+import { MessageCircle, UtensilsCrossed, Heart, Shirt, Mic, Send, Sparkles, BookOpen } from "lucide-react";
 import { CatSprite } from "@/components/cat-sprite";
-import { useStore } from "@/store/use-store";
+import { useStore, satietyMultiplier } from "@/store/use-store";
 import { FOODS, OUTFITS, type Food, type Outfit } from "@/games/catalog";
+
+// ============================================================
+// Страница кота: hero с питомцем, сытость и опыт,
+// табы Чат / Ашхана / Ласка / Кибет, советы и мәкаль дня.
+// Голосовой чат: запись → WAV → STT → GigaChat → TTS.
+// ============================================================
+
+// Мәкаль дня — ротация по дню года
+const PROVERBS = [
+  { tt: "Белем — нур, белмәү — хур", ru: "Знание — свет, незнание — позор" },
+  { tt: "Дуслык — иң зур байлык", ru: "Дружба — самое большое богатство" },
+  { tt: "Эш беткәч — уйнарга ярый", ru: "Сделал дело — гуляй смело" },
+  { tt: "Туган тел — ана теле", ru: "Родной язык — материнский" },
+];
 
 function audioBufferToWav(buffer: AudioBuffer): Blob {
   const numChannels = buffer.numberOfChannels;
@@ -50,10 +65,13 @@ function audioBufferToWav(buffer: AudioBuffer): Blob {
   return new Blob([arrayBuffer], { type: "audio/wav" });
 }
 
+// Кулдаун ласки — 10 секунд
+const PET_COOLDOWN_MS = 10_000;
+
 export default function CatPage() {
   const store = useStore();
-  const { cat, points, gender, feedCat, dressCat, playWithCat, spendPoints, buyShopItem, shopPurchases } = store;
-  const [tab, setTab] = useState<"chat" | "feed" | "play" | "dress">("chat");
+  const { cat, points, gender, gamesPlayed, feedCat, dressCat, playWithCat, addCatExp, spendPoints, buyShopItem, shopPurchases } = store;
+  const [tab, setTab] = useState<"chat" | "feed" | "pet" | "dress">("chat");
   const [chatMsg, setChatMsg] = useState("");
   const [chatHistory, setChatHistory] = useState<{ role: string; text: string }[]>([]);
   const [floatEmoji, setFloatEmoji] = useState<string | null>(null);
@@ -61,21 +79,36 @@ export default function CatPage() {
   const [isThinking, setIsThinking] = useState(false);
   const [subtitles, setSubtitles] = useState<string>("");
   const [catMood, setCatMood] = useState<string>("happy");
+  const [feedMsg, setFeedMsg] = useState<string | null>(null);
+  const [petMsg, setPetMsg] = useState<string | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const sourceNodeRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const processorRef = useRef<ScriptProcessorNode | null>(null);
   const audioChunksRef = useRef<Float32Array[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const lastPetRef = useRef(0);
 
   const showFloat = (emoji: string) => {
     setFloatEmoji(emoji);
     setTimeout(() => setFloatEmoji(null), 1000);
   };
 
-  // Ашхана: еда стоит баллы, сытность растёт, анимация «ням-ням»
-  const [feedMsg, setFeedMsg] = useState<string | null>(null);
+  // Производное настроение: голодный и сонный кот — поверх чат-настроения
+  const displayMood = cat.hunger <= 0 ? "sleeping" : cat.hunger < 40 ? "hungry" : catMood;
+  const mult = satietyMultiplier(cat.hunger);
+  const expInLevel = cat.exp % 100;
+  const outfitName = OUTFITS.find((o) => o.id === cat.outfit)?.name ?? cat.outfit;
+  const proverb = PROVERBS[Math.floor(Date.now() / 86_400_000) % PROVERBS.length]!;
 
+  const moodText =
+    cat.hunger <= 0 ? "😴 Спит… покорми в Ашхане!" :
+    displayMood === "happy" ? "😊 Счастлив и мурлычет!" :
+    displayMood === "hungry" ? "😿 Проголодался… ашыйсы килә!" :
+    displayMood === "playful" ? "🎉 Готов играть!" :
+    displayMood === "thinking" ? "🤔 Думает…" : "😺 Ждёт татарских слов";
+
+  // Ашхана: еда стоит баллы, сытность растёт, анимация «ням-ням»
   const handleFeed = (food: Food) => {
     if (cat.hunger >= 100) {
       setFeedMsg("Тук! Кот уже сыт 😊");
@@ -93,8 +126,26 @@ export default function CatPage() {
     setTimeout(() => setFeedMsg(null), 1500);
   };
 
+  // Ласка: погладить — +опыт, сердечки, кулдаун 10 сек
+  const handlePet = () => {
+    const now = Date.now();
+    const wait = Math.ceil((PET_COOLDOWN_MS - (now - lastPetRef.current)) / 1000);
+    if (wait > 0) {
+      setPetMsg(`Кот отдыхает… ещё ${wait} сек 😌`);
+      setTimeout(() => setPetMsg(null), 1500);
+      return;
+    }
+    lastPetRef.current = now;
+    addCatExp(4);
+    showFloat("💕");
+    setCatMood("happy");
+    setPetMsg("Мр-р-р! Кот доволен +4 опыта 💕");
+    setTimeout(() => setPetMsg(null), 1800);
+  };
+
   const handlePlay = () => {
     playWithCat();
+    setCatMood("playful");
     showFloat("🎾");
   };
 
@@ -253,9 +304,17 @@ export default function CatPage() {
     setIsThinking(false);
   };
 
+  const TABS = [
+    { id: "chat", label: "Чат", icon: MessageCircle },
+    { id: "feed", label: "Ашхана", icon: UtensilsCrossed },
+    { id: "pet", label: "Ласка", icon: Heart },
+    { id: "dress", label: "Кибет", icon: Shirt },
+  ] as const;
+
   return (
     <div className="page-shell" style={{ alignItems: "center" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+      {/* Шапка */}
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", width: "100%", justifyContent: "center" }}>
         <h1 className="page-title" style={{ color: "var(--gold)" }}>Мой кот</h1>
         {gender && (
           <span className="badge badge-accent">{gender === "kyz" ? "Кыз 🎀" : "Малай 🧢"}</span>
@@ -263,20 +322,61 @@ export default function CatPage() {
         <span className="badge badge-gold">💰 {points}</span>
       </div>
 
-      <div style={{ position: "relative" }}>
-        <CatSprite cat={{ ...cat, mood: catMood as typeof cat.mood }} gender={gender} size={200} />
-        {floatEmoji && (
-          <div style={{ position: "absolute", top: -20, left: "50%", fontSize: "2rem", animation: "float-up 1s ease forwards" }}>
-            {floatEmoji}
+      {/* Hero: питомец */}
+      <div className="hero-card" style={{ width: "100%", padding: "1rem", textAlign: "center" }}>
+        <div style={{ position: "relative", display: "inline-block" }}>
+          <CatSprite
+            cat={{ ...cat, mood: displayMood as typeof cat.mood }}
+            gender={gender}
+            size={210}
+            onClick={handlePet}
+          />
+          {floatEmoji && (
+            <div style={{ position: "absolute", top: -8, left: "50%", transform: "translateX(-50%)", fontSize: "2rem", animation: "float-up 1s ease forwards" }}>
+              {floatEmoji}
+            </div>
+          )}
+        </div>
+
+        <p style={{ fontSize: "0.85rem", color: "var(--fg)", fontWeight: 700, marginTop: 4 }}>{moodText}</p>
+        <p style={{ fontSize: "0.68rem", color: "var(--fg-muted)" }}>нажми на кота, чтобы погладить 💕</p>
+
+        {/* Сытость */}
+        <div style={{ marginTop: 10, textAlign: "left" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.7rem", marginBottom: 4 }}>
+            <span style={{ color: "var(--fg-muted)", fontWeight: 700 }}>🍲 СЫТОСТЬ</span>
+            <span>
+              <span style={{ fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{cat.hunger}%</span>
+              {" · "}
+              <span style={{ color: "var(--gold)", fontWeight: 800 }}>×{mult} к баллам</span>
+            </span>
           </div>
-        )}
+          <div className="progress-track">
+            <div
+              className={cat.hunger < 40 ? "progress-fill progress-fill-red" : "progress-fill progress-fill-gold"}
+              style={{ width: `${cat.hunger}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Опыт */}
+        <div style={{ marginTop: 8, textAlign: "left" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.7rem", marginBottom: 4 }}>
+            <span style={{ color: "var(--fg-muted)", fontWeight: 700 }}>⭐ ОПЫТ • Ур. {cat.level}</span>
+            <span style={{ fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{expInLevel}/100</span>
+          </div>
+          <div className="progress-track">
+            <div className="progress-fill" style={{ width: `${expInLevel}%` }} />
+          </div>
+        </div>
       </div>
 
+      {/* Субтитры голосового чата */}
       {subtitles && (
         <div style={{
-          background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "0.75rem",
+          background: "var(--surface-glass)", border: "1px solid var(--border)", borderRadius: "0.9rem",
           padding: "0.6rem 1rem", fontSize: "0.85rem", color: "var(--fg)", textAlign: "center",
-          width: "100%", maxWidth: 320, minHeight: 40,
+          width: "100%", minHeight: 40,
           display: "flex", alignItems: "center", justifyContent: "center",
         }}>
           {isThinking ? (
@@ -288,14 +388,20 @@ export default function CatPage() {
         </div>
       )}
 
+      {/* Табы */}
       <div style={{ display: "flex", gap: "0.5rem", width: "100%" }}>
-        {(["chat", "feed", "play", "dress"] as const).map((t) => (
-          <button key={t} onClick={() => setTab(t)}
-            className={"btn " + (tab === t ? "btn-primary" : "btn-ghost")}
-            style={{ flex: 1, fontSize: "0.75rem", padding: "0.5rem" }}>
-            {t === "chat" ? "Чат" : t === "feed" ? "Ашхана" : t === "play" ? "Играть" : "Кибет"}
-          </button>
-        ))}
+        {TABS.map((t) => {
+          const Icon = t.icon;
+          const active = tab === t.id;
+          return (
+            <button key={t.id} onClick={() => setTab(t.id)}
+              className={"btn " + (active ? "btn-primary" : "btn-ghost")}
+              style={{ flex: 1, fontSize: "0.72rem", padding: "0.55rem 0.2rem", flexDirection: "column", gap: 2 }}>
+              <Icon size={16} />
+              {t.label}
+            </button>
+          );
+        })}
       </div>
 
       <div className="card" style={{ width: "100%" }}>
@@ -304,7 +410,7 @@ export default function CatPage() {
             <div style={{ maxHeight: 200, overflowY: "auto", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
               {chatHistory.length === 0 && (
                 <p style={{ color: "var(--fg-muted)", fontSize: "0.8rem", textAlign: "center" }}>
-                  Поговори со мной на татарском!
+                  Поговори со мной на татарском — голосом или текстом!
                 </p>
               )}
               {chatHistory.map((msg, i) => (
@@ -330,16 +436,18 @@ export default function CatPage() {
               <button
                 onClick={handleVoiceChat}
                 className={"btn " + (isRecording ? "btn-danger" : "btn-gold")}
-                style={{ padding: "0.6rem", borderRadius: "50%", width: 40, height: 40, fontSize: "1.1rem" }}
+                style={{ padding: "0.6rem", borderRadius: "50%", width: 42, height: 42, fontSize: "1.1rem", flexShrink: 0 }}
                 title={isRecording ? "Остановить запись" : "Голосовой чат"}
               >
-                {isRecording ? "⏹" : "🎤"}
+                {isRecording ? "⏹" : <Mic size={17} />}
               </button>
               <input value={chatMsg} onChange={(e) => setChatMsg(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleChat()}
                 placeholder="Напиши на татарском..."
-                style={{ flex: 1, padding: "0.6rem 0.8rem", borderRadius: "0.75rem", border: "1px solid var(--border)", background: "var(--bg)", color: "var(--fg)", fontSize: "0.85rem" }} />
-              <button className="btn btn-primary" onClick={handleChat} style={{ padding: "0.6rem 1rem" }}>→</button>
+                style={{ flex: 1, minWidth: 0, padding: "0.6rem 0.8rem", borderRadius: "0.75rem", border: "1px solid var(--border)", background: "var(--bg)", color: "var(--fg)", fontSize: "0.85rem" }} />
+              <button className="btn btn-primary" onClick={handleChat} style={{ padding: "0.6rem 0.8rem", flexShrink: 0 }} aria-label="Отправить">
+                <Send size={15} />
+              </button>
             </div>
           </div>
         )}
@@ -347,7 +455,7 @@ export default function CatPage() {
         {tab === "feed" && (
           <div>
             <p style={{ fontSize: "0.75rem", color: "var(--fg-muted)", textAlign: "center", marginBottom: 8 }}>
-              Ашхана: покорми кота — сытность даёт ×баллы в играх
+              Ашхана: сытый кот приносит ×1.5 баллов в играх
             </p>
             {feedMsg && (
               <p className="animate-pop" style={{ fontSize: "0.78rem", fontWeight: 700, textAlign: "center", marginBottom: 8, color: "var(--gold)" }}>
@@ -374,10 +482,24 @@ export default function CatPage() {
           </div>
         )}
 
-        {tab === "play" && (
-          <div style={{ textAlign: "center", padding: "1rem" }}>
-            <p style={{ marginBottom: 12, color: "var(--fg-muted)" }}>Поиграй с котом!</p>
-            <button className="btn btn-gold" onClick={handlePlay}>Играть с котом</button>
+        {tab === "pet" && (
+          <div style={{ textAlign: "center", padding: "0.5rem" }}>
+            <p style={{ fontSize: "0.78rem", color: "var(--fg-muted)", marginBottom: 10 }}>
+              Ласка даёт +4 опыта. Кулдаун — 10 секунд, кот тоже устаёт 😌
+            </p>
+            {petMsg && (
+              <p className="animate-pop" style={{ fontSize: "0.8rem", fontWeight: 700, marginBottom: 10, color: "var(--gold)" }}>
+                {petMsg}
+              </p>
+            )}
+            <div style={{ display: "flex", gap: "0.5rem" }}>
+              <button className="btn btn-gold" onClick={handlePet} style={{ flex: 1 }}>
+                <Heart size={16} /> Погладить
+              </button>
+              <button className="btn btn-primary" onClick={handlePlay} style={{ flex: 1 }}>
+                🎾 Играть
+              </button>
+            </div>
           </div>
         )}
 
@@ -406,24 +528,45 @@ export default function CatPage() {
         )}
       </div>
 
-      <div className="card" style={{ width: "100%", display: "flex", justifyContent: "space-between" }}>
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: "0.65rem", color: "var(--fg-muted)" }}>Настроение</div>
-          <div style={{ fontSize: "1.2rem" }}>
-            {catMood === "sleeping" || cat.hunger <= 0 ? "😴" : catMood === "happy" ? "😊" : catMood === "hungry" || cat.hunger < 40 ? "😿" : catMood === "playful" ? "🎉" : catMood === "thinking" ? "🤔" : "😺"}
-          </div>
-          <div style={{ fontSize: "0.62rem", color: "var(--fg-muted)" }}>
-            {cat.hunger <= 0 ? "Спит (покорми!)" : cat.hunger < 40 ? "Голоден" : cat.hunger >= 75 ? "Сыт ×1.5" : "Норм ×1.0"}
-          </div>
+      {/* Статистика кота */}
+      <div className="card" style={{ width: "100%", display: "flex", justifyContent: "space-between", textAlign: "center" }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: "0.62rem", color: "var(--fg-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Сытость</div>
+          <div style={{ fontWeight: 800, fontSize: "1.05rem", fontVariantNumeric: "tabular-nums" }}>{cat.hunger}%</div>
         </div>
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: "0.65rem", color: "var(--fg-muted)" }}>Сытость</div>
-          <div style={{ fontWeight: 700 }}>{cat.hunger}%</div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: "0.62rem", color: "var(--fg-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Уровень</div>
+          <div style={{ fontWeight: 800, fontSize: "1.05rem" }}>{cat.level}</div>
         </div>
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: "0.65rem", color: "var(--fg-muted)" }}>Уровень</div>
-          <div style={{ fontWeight: 700 }}>{cat.level}</div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: "0.62rem", color: "var(--fg-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Наряд</div>
+          <div style={{ fontWeight: 800, fontSize: "0.8rem" }}>{outfitName}</div>
         </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: "0.62rem", color: "var(--fg-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Игр</div>
+          <div style={{ fontWeight: 800, fontSize: "1.05rem", fontVariantNumeric: "tabular-nums" }}>{gamesPlayed}</div>
+        </div>
+      </div>
+
+      {/* Советы по уходу */}
+      <div className="card" style={{ width: "100%" }}>
+        <div style={{ fontWeight: 800, fontSize: "0.85rem", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+          <Sparkles size={15} style={{ color: "var(--gold)" }} /> Как ухаживать
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.45rem", fontSize: "0.78rem", color: "var(--fg-muted)", lineHeight: 1.45 }}>
+          <div>🍲 <b style={{ color: "var(--fg)" }}>Корми в Ашхане</b> — сытость 75%+ даёт ×1.5 баллов в играх</div>
+          <div>🎮 <b style={{ color: "var(--fg)" }}>Каждая игра −12%</b> — при 0% кот засыпает и играть нельзя</div>
+          <div>💕 <b style={{ color: "var(--fg)" }}>Гладь кота</b> — +4 опыта за ласку, уровень растёт</div>
+        </div>
+      </div>
+
+      {/* Мәкаль дня */}
+      <div className="card card-gold" style={{ width: "100%", textAlign: "center" }}>
+        <div style={{ fontSize: "0.65rem", color: "var(--fg-muted)", textTransform: "uppercase", letterSpacing: "0.07em", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+          <BookOpen size={13} /> Мәкаль көне
+        </div>
+        <div className="font-display" style={{ fontWeight: 700, fontSize: "0.95rem", marginTop: 6 }}>«{proverb.tt}»</div>
+        <div style={{ fontSize: "0.75rem", color: "var(--fg-muted)", marginTop: 2 }}>{proverb.ru}</div>
       </div>
     </div>
   );
