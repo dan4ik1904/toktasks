@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import { Mic, Send, Volume2, Sparkles, Bot, User } from "lucide-react";
+import { Mic, Send, Volume2, Sparkles, User } from "lucide-react";
 import { useStore } from "@/store/use-store";
+import { haptic } from "@/lib/telegram";
 
 // ============================================================
-// Сөйләшү: Чат с ИИ-репетитором татарского языка.
-// Голосовой ввод (WAV 16kHz) + синтез речи (TTS) + GigaChat.
-// Никаких котов-тамагочи — чистое обучение и разговорная практика.
+// Ак Барс — официальный ИИ-ассистент проекта TatarLearn.
+// Дружелюбный снежный барс с поддержкой татарского/русского языков,
+// голосовым вводом и культурными фактами.
 // ============================================================
 
 interface Message {
@@ -17,9 +18,9 @@ interface Message {
 
 const QUICK_PROMPTS = [
   "Ничек хәлләрегез? (Как дела?)",
-  "Мин татар телен өйрәнәм (Я учу татарский)",
-  "Казан турында сөйлә (Расскажи о Казани)",
-  "Рәхмәт, бик зур рахмәт! (Спасибо!)",
+  "Расскажи интересный факт о Казани",
+  "Как правильно произносить букву Ә?",
+  "Переведи: «Я люблю татарский язык»",
 ];
 
 function audioBufferToWav(buffer: AudioBuffer): Blob {
@@ -67,12 +68,12 @@ function audioBufferToWav(buffer: AudioBuffer): Blob {
   return new Blob([arrayBuffer], { type: "audio/wav" });
 }
 
-export default function ChatPage() {
+export default function AkBarsAssistantPage() {
   const { points } = useStore();
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      text: "Иминлек! Син татар телендә сөйләшү үзәгендә. Мин сезнең AI-репетитор. Татарча нинди соравыгыз бар яки нәрсә турында сөйләшик?",
+      text: "Иминлек! Мин — Ак Барс, твой ИИ-помощник в изучении татарского языка. Спроси меня о грамматике, переводи слова или узнай факты о культуре Татарстана!",
     },
   ]);
   const [input, setInput] = useState("");
@@ -106,6 +107,7 @@ export default function ChatPage() {
     const msg = (textToSend ?? input).trim();
     if (!msg) return;
     if (!textToSend) setInput("");
+    haptic("light");
 
     const newHistory = [...messages, { role: "user" as const, text: msg }];
     setMessages(newHistory);
@@ -132,6 +134,7 @@ export default function ChatPage() {
   };
 
   const handleVoice = useCallback(async () => {
+    haptic("medium");
     if (isRecording) {
       if (processorRef.current) {
         processorRef.current.disconnect();
@@ -182,7 +185,7 @@ export default function ChatPage() {
         const res = await fetch(base + "/api/cat/chat", { method: "POST", body: form });
         const data = await res.json();
         const userHeard = data.text || "🎤 Голосовое сообщение";
-        const reply = data.reply || "Мяв?";
+        const reply = data.reply || "Иминлек!";
 
         setMessages((h) => [
           ...h,
@@ -231,25 +234,27 @@ export default function ChatPage() {
   return (
     <div className="page-shell" style={{ maxWidth: 640 }}>
       {/* Шапка */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "between", width: "100%" }}>
-        <div>
-          <div className="badge badge-gold" style={{ marginBottom: 4 }}>
-            <Sparkles size={11} /> AI-репетитор
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          <div style={{ width: 48, height: 48, borderRadius: "50%", background: "var(--gold-soft)", border: "2px solid var(--gold)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.8rem" }}>
+            🐆
           </div>
-          <h1 className="page-title">Сөйләшү</h1>
-          <p className="page-subtitle">Практика татарской речи и перевода с искусственным интеллектом</p>
+          <div>
+            <div className="badge badge-gold" style={{ marginBottom: 2 }}>
+              <Sparkles size={11} /> Ак Барс • AI Tutor
+            </div>
+            <h1 className="page-title" style={{ fontSize: "1.2rem" }}>Умный помощник</h1>
+          </div>
         </div>
-        <div className="badge badge-gold" style={{ height: "fit-content" }}>
-          💰 {points}
-        </div>
+        <div className="badge badge-gold">💰 {points}</div>
       </div>
 
-      {/* Быстрые фразы */}
+      {/* Быстрые промпты */}
       <div style={{ display: "flex", gap: "0.4rem", overflowX: "auto", paddingBottom: "0.2rem" }}>
         {QUICK_PROMPTS.map((qp, i) => (
           <button
             key={i}
-            onClick={() => sendText(qp.split(" ")[0] + " " + (qp.split(" ")[1] || ""))}
+            onClick={() => sendText(qp)}
             className="btn btn-ghost btn-sm"
             style={{ whiteSpace: "nowrap", flexShrink: 0, fontSize: "0.72rem" }}
           >
@@ -259,7 +264,7 @@ export default function ChatPage() {
       </div>
 
       {/* Окно чата */}
-      <div className="card" style={{ display: "flex", flexDirection: "column", gap: "0.8rem", minHeight: "50dvh", maxHeight: "60dvh", overflowY: "auto" }}>
+      <div className="card" style={{ display: "flex", flexDirection: "column", gap: "0.8rem", minHeight: "48dvh", maxHeight: "58dvh", overflowY: "auto" }}>
         {messages.map((m, idx) => (
           <div
             key={idx}
@@ -282,11 +287,11 @@ export default function ChatPage() {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: "var(--gold)",
+                  fontSize: "1.1rem",
                   flexShrink: 0,
                 }}
               >
-                <Bot size={17} />
+                🐆
               </div>
             )}
             <div
@@ -333,7 +338,7 @@ export default function ChatPage() {
         ))}
         {isThinking && (
           <div style={{ display: "flex", gap: "0.6rem", alignItems: "center", color: "var(--fg-muted)", fontSize: "0.8rem" }}>
-            <Bot size={20} style={{ color: "var(--gold)" }} /> Репетитор думает...
+            <span>🐆</span> Ак Барс думает...
           </div>
         )}
       </div>
@@ -352,7 +357,7 @@ export default function ChatPage() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && sendText()}
-          placeholder="Напиши сообщение на татарском..."
+          placeholder="Спроси Ак Барса на татарском или русском..."
           style={{
             flex: 1,
             minWidth: 0,

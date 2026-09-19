@@ -2,17 +2,18 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, ListTodo, MessageSquareText, Gamepad2, User } from "lucide-react";
+import { Home, Map, Gamepad2, User } from "lucide-react";
+import { haptic } from "@/lib/telegram";
 
 // ============================================================
-// Нижняя навигация: плавающая стеклянная пилюля.
-// Центральная кнопка «Сөйләшү» (Чат с ИИ) приподнята и подсвечена золотом.
+// Навигация под спецификацию TatarLearn:
+// 1. Главная | 2. Обучение (Древо) | 3. Ак Барс (Центр) | 4. Игры | 5. Профиль
 // ============================================================
 
 const TABS = [
   { href: "/", label: "Главная", icon: Home },
-  { href: "/tasks", label: "Задания", icon: ListTodo },
-  { href: "/cat", label: "Сөйләшү", icon: MessageSquareText, center: true },
+  { href: "/tasks", label: "Обучение", icon: Map },
+  { href: "/cat", label: "Ак Барс", icon: () => <span style={{ fontSize: "1.4rem" }}>🐆</span>, center: true },
   { href: "/games", label: "Игры", icon: Gamepad2 },
   { href: "/profile", label: "Профиль", icon: User },
 ];
@@ -36,14 +37,15 @@ export function TabBar() {
             <Link
               key={tab.href}
               href={tab.href}
-              aria-label="Сөйләшү"
+              onClick={() => haptic("medium")}
+              aria-label="Ак Барс ИИ-ассистент"
               style={{
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 marginTop: "-1.9rem",
-                width: "3.6rem",
-                height: "3.6rem",
+                width: "3.8rem",
+                height: "3.8rem",
                 borderRadius: "50%",
                 background: active
                   ? "linear-gradient(135deg, var(--gold), var(--gold-light))"
@@ -54,15 +56,18 @@ export function TabBar() {
                 transition: "all 0.2s ease",
               }}
             >
-              <Icon size={22} strokeWidth={2.2} />
+              <span style={{ fontSize: "1.6rem" }}>🐆</span>
             </Link>
           );
         }
+
+        const LucideIcon = Icon as React.ComponentType<{ size?: number; strokeWidth?: number }>;
 
         return (
           <Link
             key={tab.href}
             href={tab.href}
+            onClick={() => haptic("light")}
             style={{
               display: "flex",
               flexDirection: "column",
@@ -78,7 +83,7 @@ export function TabBar() {
               background: active ? "var(--gold-soft)" : "transparent",
             }}
           >
-            <Icon size={19} strokeWidth={active ? 2.5 : 1.8} />
+            <LucideIcon size={19} strokeWidth={active ? 2.5 : 1.8} />
             <span>{tab.label}</span>
           </Link>
         );
