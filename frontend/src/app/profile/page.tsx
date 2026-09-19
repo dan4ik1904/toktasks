@@ -1,109 +1,130 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { Bot, Flame, RotateCcw, Trophy } from "lucide-react";
-import { ISLANDS } from "@/data/islands";
-import { levelOf, useProgress } from "@/store/use-progress";
-import { Progress } from "@/components/ui/progress";
-import { useTelegram } from "@/providers/telegram-provider";
-import { fetchStatsApi } from "@/lib/api";
+import { useStore } from "@/store/use-store";
+import { useTheme } from "@/providers/theme-provider";
+import { Cat, Star, Zap, Flame, Trophy, RotateCcw, Sun, Moon } from "lucide-react";
+
+const SHOP_ITEMS = [
+  { id: "merch-tshirt", title: "Футболка TATARCHA", desc: "Мерч от команды", price: 300, category: "merch" },
+  { id: "cafe-discount", title: "Скидка 15% в кафе «Бәлеш»", desc: "Казань, ул. Баумана", price: 150, category: "discounts" },
+  { id: "museum-ticket", title: "Билет в Национальный музей", desc: "Республика Татарстан", price: 500, category: "tickets" },
+  { id: "sticker-pack", title: "Стикерпак с котом", desc: "Telegram стикеры", price: 50, category: "merch" },
+  { id: "blesh-cake", title: "Бәлеш на выбор", desc: "Кафе «Бәлеш», Казань", price: 200, category: "food" },
+  { id: "tatarcha-pen", title: "Ручка TATARCHA", desc: "Мерч", price: 80, category: "merch" },
+];
 
 export default function ProfilePage() {
-  const xp = useProgress((s) => s.xp);
-  const streak = useProgress((s) => s.streak);
-  const completedLessons = useProgress((s) => s.completedLessons);
-  const reset = useProgress((s) => s.reset);
-  const { user } = useTelegram();
-  const { level, title, into } = levelOf(xp);
-  const totalLessons = ISLANDS.reduce((n, isl) => n + isl.lessons.length, 0);
-
-  const [platformStats, setPlatformStats] = useState<Record<string, unknown> | null>(null);
-
-  useEffect(() => {
-    void fetchStatsApi().then(setPlatformStats);
-  }, []);
-
-  const displayName = user?.first_name ?? "Айгуль";
+  const { name, setName, points, streak, hearts, cat, completedTasks, completedTopics, achievements, shopPurchases, spendPoints, buyShopItem, reset } = useStore();
+  const { theme, toggleTheme } = useTheme();
+  const level = Math.min(50, Math.floor(points / 100) + 1);
+  const xpInLevel = points % 100;
+  const unlockedAchievements = achievements.filter((a) => a.unlocked);
 
   return (
-    <main className="flex w-full flex-1 flex-col gap-4 px-4 pt-4 pb-6">
-      <section className="flex flex-col items-center gap-2 rounded-[1.75rem] border border-[var(--line)] bg-[var(--surface)] p-6 text-center">
-        <span className="avatar-seal flex size-20 items-center justify-center rounded-full text-3xl font-black">
-          {displayName.slice(0, 1)}
-        </span>
-        <h1 className="text-xl font-bold">{displayName}</h1>
-        {user?.username && (
-          <p className="text-xs text-[var(--muted)]">@{user.username}</p>
-        )}
-        <p className="text-sm font-bold text-[var(--gold)]">
-          {level} уровень · {title}
-        </p>
-        <Progress value={into} max={100} className="mt-1 w-40" />
-        <p className="flex items-center gap-3 text-sm text-[var(--muted)]">
-          <span className="inline-flex items-center gap-1">
-            <Trophy className="size-4 text-[var(--gold)]" aria-hidden />
-            {completedLessons.length}/{totalLessons} уроков
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <Flame className="size-4 text-[var(--terracotta)]" aria-hidden />
-            {streak} дн. подряд
-          </span>
-        </p>
-      </section>
+    <div className="page-shell">
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <h1 className="page-title">Профиль</h1>
+        <button className="btn btn-ghost" onClick={toggleTheme}>
+          {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+        </button>
+      </div>
 
-      {platformStats && (
-        <section className="rounded-[1.75rem] border border-[var(--line)] bg-[var(--surface)] p-4">
-          <h2 className="mb-3 text-sm font-bold">Платформа</h2>
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <div>
-              <p className="text-[var(--muted)]">Учеников</p>
-              <p className="font-bold tabular-nums">{(platformStats.total_users as number) ?? 0}</p>
-            </div>
-            <div>
-              <p className="text-[var(--muted)]">уроков пройдено</p>
-              <p className="font-bold tabular-nums">{(platformStats.total_lessons_completed as number) ?? 0}</p>
-            </div>
-            <div>
-              <p className="text-[var(--muted)]">Активных сегодня</p>
-              <p className="font-bold tabular-nums">{(platformStats.active_today as number) ?? 0}</p>
-            </div>
-            <div>
-              <p className="text-[var(--muted)]">Топ XP</p>
-              <p className="font-bold tabular-nums">{(platformStats.top_xp as number) ?? 0}</p>
-            </div>
+      {/* User card */}
+      <div className="card card-gold" style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+        <div style={{
+          width: 56, height: 56, borderRadius: "50%", background: "var(--accent)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          color: "#fff", fontWeight: 800, fontSize: "1.3rem",
+          border: "3px solid var(--gold)",
+        }}>
+          {name.charAt(0).toUpperCase()}
+        </div>
+        <div style={{ flex: 1 }}>
+          <input value={name} onChange={(e) => setName(e.target.value)}
+            style={{ background: "transparent", border: "none", color: "var(--fg)", fontWeight: 700, fontSize: "1rem", width: "100%", padding: 0 }} />
+          <div style={{ fontSize: "0.75rem", color: "var(--fg-muted)" }}>Уровень {level}</div>
+          <div className="progress-track" style={{ marginTop: 4 }}>
+            <div className="progress-fill progress-fill-gold" style={{ width: xpInLevel + "%" }} />
           </div>
-        </section>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "0.5rem" }}>
+        <div className="card" style={{ textAlign: "center", padding: "0.75rem 0.25rem" }}>
+          <Zap size={16} style={{ color: "var(--gold)" }} />
+          <div style={{ fontWeight: 800, fontSize: "1rem" }}>{points}</div>
+          <div style={{ fontSize: "0.6rem", color: "var(--fg-muted)" }}>Поинты</div>
+        </div>
+        <div className="card" style={{ textAlign: "center", padding: "0.75rem 0.25rem" }}>
+          <Flame size={16} style={{ color: "#E74C3C" }} />
+          <div style={{ fontWeight: 800, fontSize: "1rem" }}>{streak}</div>
+          <div style={{ fontSize: "0.6rem", color: "var(--fg-muted)" }}>Серия</div>
+        </div>
+        <div className="card" style={{ textAlign: "center", padding: "0.75rem 0.25rem" }}>
+          <Cat size={16} style={{ color: "var(--gold)" }} />
+          <div style={{ fontWeight: 800, fontSize: "1rem" }}>{cat.level}</div>
+          <div style={{ fontSize: "0.6rem", color: "var(--fg-muted)" }}>Кот ур.</div>
+        </div>
+        <div className="card" style={{ textAlign: "center", padding: "0.75rem 0.25rem" }}>
+          <Trophy size={16} style={{ color: "var(--accent)" }} />
+          <div style={{ fontWeight: 800, fontSize: "1rem" }}>{completedTasks.length}</div>
+          <div style={{ fontSize: "0.6rem", color: "var(--fg-muted)" }}>Заданий</div>
+        </div>
+      </div>
+
+      {/* Achievements */}
+      {unlockedAchievements.length > 0 && (
+        <div>
+          <div style={{ fontWeight: 700, fontSize: "0.85rem", marginBottom: 8 }}>Достижения ({unlockedAchievements.length})</div>
+          <div style={{ display: "flex", gap: "0.5rem", overflowX: "auto", paddingBottom: 4 }}>
+            {unlockedAchievements.map((a) => (
+              <div key={a.id} className="card card-gold" style={{ minWidth: 100, textAlign: "center", padding: "0.5rem" }}>
+                <div style={{ fontSize: "1.3rem" }}>{a.icon}</div>
+                <div style={{ fontSize: "0.6rem", fontWeight: 600 }}>{a.title}</div>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
-      <Link
-        href="/assistant"
-        className="flex items-center gap-3 rounded-[1.75rem] border border-[var(--line)] bg-[var(--surface)] p-4"
-      >
-        <span className="flex size-11 items-center justify-center rounded-xl bg-[var(--accent)] text-white">
-          <Bot className="size-6" aria-hidden />
-        </span>
-        <span>
-          <span className="block font-semibold">Ярдәмче</span>
-          <span className="block text-sm text-[var(--muted)]">
-            ИИ-помощник по татарскому
-          </span>
-        </span>
-      </Link>
+      {/* Shop */}
+      <div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <span style={{ fontWeight: 700, fontSize: "0.85rem" }}>🛍 Магазин</span>
+          <span className="badge badge-gold">💰 {points}</span>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+          {SHOP_ITEMS.map((item) => {
+            const bought = shopPurchases.includes(item.id);
+            return (
+              <div key={item.id} className="card" style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 600, fontSize: "0.85rem" }}>{item.title}</div>
+                  <div style={{ fontSize: "0.7rem", color: "var(--fg-muted)" }}>{item.desc}</div>
+                </div>
+                {bought ? (
+                  <span className="badge badge-accent">Куплено ✓</span>
+                ) : (
+                  <button
+                    className={"btn btn-sm " + (points >= item.price ? "btn-gold" : "btn-ghost")}
+                    disabled={points < item.price}
+                    onClick={() => { if (spendPoints(item.price)) buyShopItem(item.id); }}>
+                    {item.price} 💰
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
-      <button
-        onClick={() => {
-          if (window.confirm("Сбросить весь прогресс и XP?")) reset();
-        }}
-        className="flex items-center justify-center gap-2 rounded-[1.75rem] border border-[var(--line)] p-3 text-sm text-[var(--muted)] hover:bg-[var(--surface-2)]"
-      >
-        <RotateCcw className="size-4" aria-hidden />
-        Сбросить прогресс
+      {/* Reset */}
+      <button className="btn btn-ghost" onClick={() => { if (confirm("Сбросить весь прогресс?")) reset(); }}
+        style={{ color: "var(--danger)", fontSize: "0.75rem" }}>
+        <RotateCcw size={14} /> Сбросить прогресс
       </button>
-
-      <p className="text-center text-xs text-[var(--muted)]">
-        Татар.Уку · прогресс дублируется на сервер, если он доступен
-      </p>
-    </main>
+    </div>
   );
 }
