@@ -25,6 +25,8 @@ const DICT: Record<Lang, Record<string, string>> = {
     achievements: "Достижения",
     partner: "Ресторан «Тюбетей» • Скидки",
     askAkBars: "Спросить Ак Барса",
+    level: "Уровень",
+    reset: "Сбросить прогресс",
   },
   en: {
     home: "Home",
@@ -38,8 +40,9 @@ const DICT: Record<Lang, Record<string, string>> = {
     lives: "Hearts",
     achievements: "Achievements",
     partner: "Tyubetey Restaurant • Discounts",
-    partnerDesc: "Exchange XP for discounts and echpochmaks",
     askAkBars: "Ask Ak Bars",
+    level: "Level",
+    reset: "Reset progress",
   },
   tt: {
     home: "Баш бит",
@@ -54,6 +57,8 @@ const DICT: Record<Lang, Record<string, string>> = {
     achievements: "Казаннар",
     partner: "«Тюбетей» рестораны • Ташламалар",
     askAkBars: "Ак Барстан сора",
+    level: "Дәрәҗә",
+    reset: "Прогрессны чистарту",
   },
 };
 

@@ -4,22 +4,19 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Map, Gamepad2, User } from "lucide-react";
 import { haptic } from "@/lib/telegram";
-
-// ============================================================
-// Навигация под спецификацию TatarLearn:
-// 1. Главная | 2. Обучение (Древо) | 3. Ак Барс (Центр) | 4. Игры | 5. Профиль
-// ============================================================
-
-const TABS = [
-  { href: "/", label: "Главная", icon: Home },
-  { href: "/tasks", label: "Обучение", icon: Map },
-  { href: "/cat", label: "Ак Барс", icon: () => <span style={{ fontSize: "1.4rem" }}>🐆</span>, center: true },
-  { href: "/games", label: "Игры", icon: Gamepad2 },
-  { href: "/profile", label: "Профиль", icon: User },
-];
+import { useLang } from "@/store/use-lang";
 
 export function TabBar() {
   const pathname = usePathname();
+  const { t } = useLang();
+
+  const TABS = [
+    { href: "/", label: t("home"), icon: Home },
+    { href: "/tasks", label: t("learning"), icon: Map },
+    { href: "/cat", label: t("assistant"), icon: () => <span style={{ fontSize: "1.4rem" }}>🐆</span>, center: true },
+    { href: "/games", label: t("games"), icon: Gamepad2 },
+    { href: "/profile", label: t("profile"), icon: User },
+  ];
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";

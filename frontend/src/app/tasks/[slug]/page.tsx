@@ -1,15 +1,15 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Check, X, Lightbulb } from "lucide-react";
+import { ArrowLeft, Lightbulb } from "lucide-react";
 import { TOPICS } from "@/data/topics";
 import { useStore } from "@/store/use-store";
 
 export default function TopicPage() {
   const { slug } = useParams<{ slug: string }>();
   const router = useRouter();
-  const { completeTask, isTaskCompleted, hearts, spendHeart } = useStore();
+  const { completeTask, completeTopic, isTaskCompleted } = useStore();
 
   const topic = TOPICS.find((t) => t.slug === slug);
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -37,6 +37,12 @@ export default function TopicPage() {
   const task = topic.tasks[currentIdx];
   const totalDone = topic.tasks.filter((t) => isTaskCompleted(t.id)).length;
 
+  // Перемешанные слова для заданий типа compose (в разброс)
+  const shuffledWords = useMemo(() => {
+    if (!task || task.type !== "compose" || !task.words) return [];
+    return [...task.words].sort(() => Math.random() - 0.5);
+  }, [currentIdx, task]);
+
   const checkAnswer = useCallback((answer: string) => {
     if (showResult) return;
     setSelected(answer);
@@ -46,8 +52,11 @@ export default function TopicPage() {
     if (correct) {
       completeTask(task.id, task.reward);
       setEarned((e) => e + task.reward);
+      if (currentIdx === topic.tasks.length - 1) {
+        completeTopic(topic.slug);
+      }
     }
-  }, [showResult, task, completeTask]);
+  }, [showResult, task, completeTask, completeTopic, currentIdx, topic]);
 
   const nextTask = () => {
     if (currentIdx < topic.tasks.length - 1) {
@@ -56,9 +65,37 @@ export default function TopicPage() {
       setShowResult(false);
       setIsCorrect(false);
       setShowHint(false);
+      setComposeWords([]);
       setSpeakScore(null);
       setSpeakHint("");
+    } else {
+      completeTopic(topic.slug);
+      router.push("/tasks");
     }
+  };
+
+  const handleBack = () => {
+    if (confirm("Выйти из урока? Весь текущий прогресс будет потерян.")) {
+      router.push("/tasks");
+    }
+  };
+
+  // Контекстные подсказки Ак Барса в зависимости от типа задания и вопроса
+  const getContextualHint = () => {
+    if (!task) return "Попробуй внимательно прочитать вопрос и выбрать правильный вариант.";
+    if (task.type === "translate") {
+      return `💡 Подсказка: В татарском языке слово «${task.question.replace(/Как будет | по-татарски\?/g, '')}» имеет прямое соответствие в словаре темы. Обрати внимание на написание специфических букв (ә, ө, ү, җ, ң, һ).`;
+    }
+    if (task.type === "grammar") {
+      return `💡 Подсказка по грамматике: В этом предложении важно правильно подобрать аффикс (окончание) в зависимости от гармонии гласных (закон сингармонизма).`;
+    }
+    if (task.type === "compose") {
+      return `💡 Подсказка: В татарском предложении подлежащее обычно стоит в начале, а сказуемое (глагол) — в самом конце.`;
+    }
+    if (task.type === "truefalse") {
+      return `💡 Подсказка: Вспомни правила и факты, изучаемые в этой теме, и оцени утверждение.`;
+    }
+    return `💡 Подсказка: Проверь написание и повтори правила татарской фонетики.`;
   };
 
   const handleSpeakRecord = useCallback(async () => {
@@ -197,7 +234,7 @@ export default function TopicPage() {
     }
 
     if (task.type === "compose" && task.words) {
-      const available = task.words.filter((w) => !composeWords.includes(w));
+      const available = shuffledWords.filter((w) => !composeWords.includes(w));
       return (
         <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
           <p style={{ fontWeight: 600, fontSize: "0.95rem" }}>{task.question}</p>
@@ -206,17 +243,17 @@ export default function TopicPage() {
               minHeight: "3rem",
               padding: "0.75rem",
               borderRadius: "0.75rem",
-              border: `2px solid ${showResult ? (isCorrect ? "var(--success)" : "var(--danger)") : "var(--border)"}`,
+              border: `2px solid ${showResult ? (isCorrect ? "var(--success)" : "var(--danger)") : "var(--border"}`,
               background: "var(--surface)",
               display: "flex",
               flexWrap: "wrap",
               gap: "0.5rem",
             }}
           >
-            {composeWords.map((w) => (
+            {composeWords.map((w, idx) => (
               <button
-                key={w}
-                onClick={() => setComposeWords((cw) => cw.filter((x) => x !== w))}
+                key={idx}
+                onClick={() => setComposeWords((cw) => cw.filter((_, i) => i !== idx))}
                 style={{
                   padding: "0.4rem 0.8rem",
                   borderRadius: "0.5rem",
@@ -232,9 +269,9 @@ export default function TopicPage() {
             ))}
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-            {available.map((w) => (
+            {available.map((w, idx) => (
               <button
-                key={w}
+                key={idx}
                 onClick={() => setComposeWords((cw) => [...cw, w])}
                 style={{
                   padding: "0.4rem 0.8rem",
@@ -285,7 +322,7 @@ export default function TopicPage() {
               width: "100%",
               padding: "0.75rem",
               borderRadius: "0.75rem",
-              border: `2px solid ${showResult ? (isCorrect ? "var(--success)" : "var(--danger)") : "var(--border)"}`,
+              border: `2px solid ${showResult ? (isCorrect ? "var(--success)" : "var(--danger)") : "var(--border"}`,
               background: "var(--surface)",
               color: "var(--fg)",
               fontSize: "0.9rem",
@@ -326,14 +363,9 @@ export default function TopicPage() {
               <div style={{ fontSize: "0.8rem", color: "var(--fg-muted)" }}>Точность: {speakScore}%</div>
               {speakHint && (
                 <div style={{ fontSize: "0.8rem", color: "var(--fg-muted)", marginTop: 4 }}>
-                  🐱 {speakHint}
+                  🐆 {speakHint}
                 </div>
               )}
-            </div>
-          )}
-          {showResult && isCorrect && (
-            <div style={{ color: "var(--success)", fontWeight: 700 }}>
-              Отлично! Произношение верное! +{task.reward} 💰
             </div>
           )}
         </div>
@@ -346,7 +378,7 @@ export default function TopicPage() {
   return (
     <div className="page-shell">
       <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-        <button className="btn btn-ghost" onClick={() => router.push("/tasks")} style={{ padding: "0.5rem" }}>
+        <button className="btn btn-ghost" onClick={handleBack} style={{ padding: "0.5rem" }}>
           <ArrowLeft size={20} />
         </button>
         <div>
@@ -363,7 +395,6 @@ export default function TopicPage() {
 
       <div style={{ fontSize: "0.7rem", color: "var(--fg-muted)", textAlign: "center" }}>
         Задание {currentIdx + 1} из {topic.tasks.length}
-        {task && <span style={{ marginLeft: 8 }}>({task.type === "translate" ? "перевод" : task.type === "compose" ? "составь" : task.type === "truefalse" ? "верно/неверно" : task.type === "grammar" ? "грамматика" : task.type === "speak" ? "произнеси" : "аудио"})</span>}
       </div>
 
       <div className="card">{renderTask()}</div>
@@ -388,12 +419,12 @@ export default function TopicPage() {
               onClick={() => setShowHint(true)}
               style={{ marginTop: 8, fontSize: "0.75rem" }}
             >
-              <Lightbulb size={14} /> Подсказка кота
+              <Lightbulb size={14} /> Подсказка Ак Барса
             </button>
           )}
           {showHint && (
-            <p style={{ fontSize: "0.8rem", color: "var(--fg-muted)", marginTop: 4 }}>
-              🐱 Попробуй вспомнить корни слов и повтори ещё раз!
+            <p style={{ fontSize: "0.8rem", color: "var(--fg-muted)", marginTop: 4, lineHeight: 1.4 }}>
+              🐆 {getContextualHint()}
             </p>
           )}
           <button className="btn btn-primary" onClick={nextTask} style={{ marginTop: 12 }}>
@@ -407,7 +438,7 @@ export default function TopicPage() {
           <div style={{ fontSize: "2rem" }}>🏆</div>
           <div style={{ fontWeight: 700 }}>Тема завершена!</div>
           <div style={{ fontSize: "0.8rem", color: "var(--fg-muted)" }}>Заработано: {earned} поинтов</div>
-          <button className="btn btn-gold" onClick={() => router.push("/tasks")} style={{ marginTop: 8 }}>
+          <button className="btn btn-gold" onClick={() => { completeTopic(topic.slug); router.push("/tasks"); }} style={{ marginTop: 8 }}>
             К списку тем
           </button>
         </div>
