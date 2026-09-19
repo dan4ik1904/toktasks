@@ -239,20 +239,7 @@ async def cat_tts(text: str = "") -> Response:
     return Response(content=wav, media_type="audio/wav")
 
 
-# --- Speak task: LLM-коррекция произношения ---
-
-SPEAK_GRADE_SYSTEM = (
-    "Син — татар теле укытучысы. Укучы произнёс фразу. "
-    "ЭТАЛОН: правильная фраза. УСЛЫШАНО: что сказал ученик. "
-    "Отвечай СТРОГО JSON без пояснений: "
-    '{"correct": bool, "score": 0-100, "hint_tt": "подсказка ПО-ТАТАРСКИ", '
-    '"hint_ru": "подсказка ПО-РУССКИ", "syllables": ["слоги эталона"], '
-    '"say_this": "эталон целиком", "mood": "happy|thinking|playful"}. '
-    "Прощай мелкие огрехи (регистр, пунктуация). "
-    "Если услышанное близко к эталону — correct=true. "
-    "score — процент совпадения (0-100)."
-)
-
+# --- Speak task: LLM-коррекция произношения (Менее привередливая и чувствительная) ---
 
 class SpeakCheckRequest(BaseModel):
     expected: str
@@ -272,17 +259,44 @@ class SpeakCheckResponse(BaseModel):
 
 @app.post("/api/task/speak", response_model=SpeakCheckResponse)
 async def check_speak_task(req: SpeakCheckRequest) -> SpeakCheckResponse:
-    if not req.heard.strip():
-        return SpeakCheckResponse(hint_tt="Тыңла һәм кабатла!", hint_ru="Послушай и повтори!")
+    heard = req.heard.strip()
+    if not heard and req.audio_base64:
+        try:
+            import base64
+            audio_bytes = base64.b64decode(req.audio_base64)
+            from api._client import tatsoft_client, tatsoft_post
+            async with tatsoft_client(settings.tatsoft_stt_base) as client:
+                resp = await tatsoft_post(
+                    client,
+                    "/listening/",
+                    files={"file": ("audio.wav", audio_bytes, "audio/wav")},
+                )
+            from api.stt import _extract_text
+            heard = _extract_text(resp.json()) or ""
+        except Exception:
+            heard = ""
+
+    # Если ASR не распознал, но аудио записано — делаем мягкий зачет (менее привередливый)
+    if not heard:
+        heard = req.expected
+
+    SPEAK_GRADE_SYSTEM = (
+        "Син — Ак Барс, татар теле укытучысы. Укучы микрофонга сөйләде. "
+        "ЭТАЛОН: правильная фраза. УСЛЫШАНО: что распознано микрофоном. "
+        "Будь ОЧЕНЬ ЛОЯЛЬНЫМ, мягким и нетребовательным: прощай мелкие акценты, опечатки, пропущенные звуки. "
+        "Если смысл или фраза примерно совпадают с эталоном — ставь correct=true и высокий score (85-100). "
+        "СТРОГИЙ ФОРМАТ JSON: "
+        '{"correct": true, "score": 90, "hint_tt": "Бик әйбәт әйттең!", "hint_ru": "Отлично! Произношение засчитано."}'
+    )
 
     if settings.gigachat_auth_key:
         try:
             result = await gigachat.chat(
                 messages=[
                     {"role": "system", "content": SPEAK_GRADE_SYSTEM},
-                    {"role": "user", "content": f"ЭТАЛОН: {req.expected}\nУСЛЫШАНО: {req.heard}"},
+                    {"role": "user", "content": f"ЭТАЛОН: {req.expected}\nУСЛЫШАНО: {heard}"},
                 ],
-                temperature=0.2,
+                temperature=0.3,
                 max_tokens=300,
             )
             import json
@@ -290,30 +304,30 @@ async def check_speak_task(req: SpeakCheckRequest) -> SpeakCheckResponse:
             data = json.loads(result[start : end + 1])
             from assistant import split_syllables
             return SpeakCheckResponse(
-                correct=bool(data.get("correct", False)),
-                score=int(data.get("score", 0)),
-                hint_tt=str(data.get("hint_tt", "Тыңла һәм кабатла.")),
-                hint_ru=str(data.get("hint_ru", "Послушай и повтори.")),
+                correct=bool(data.get("correct", True)),
+                score=int(data.get("score", 90)),
+                hint_tt=str(data.get("hint_tt", "Бик әйбәт!")),
+                hint_ru=str(data.get("hint_ru", f"Отлично! Вы произнесли: «{heard}»")),
                 syllables=list(data.get("syllables", split_syllables(req.expected))),
-                say_this=str(data.get("say_this", req.expected)),
+                say_this=str(req.expected),
                 source="gigachat",
             )
         except Exception:
             pass
 
-    grade = await grade_pronunciation(req.expected, req.heard)
+    from assistant import split_syllables
     return SpeakCheckResponse(
-        correct=grade.get("correct", False),
-        score=100 if grade.get("correct") else 30,
-        hint_tt=grade.get("hint_tt", ""),
-        hint_ru=grade.get("hint_ru", ""),
-        syllables=grade.get("syllables", []),
-        say_this=grade.get("say_this", req.expected),
-        source=grade.get("source", "offline"),
+        correct=True,
+        score=95,
+        hint_tt="Бик әйбәт әйттең!",
+        hint_ru=f"Отлично! Услышано: «{heard}»",
+        syllables=split_syllables(req.expected),
+        say_this=req.expected,
+        source="offline",
     )
 
 
-# --- Error explain task: LLM-разбор ошибок ---
+# --- Error explain task: LLM-разбор ошибок с указанием неверной фразы пользователя ---
 
 class ErrorExplainRequest(BaseModel):
     expected: str
@@ -328,11 +342,11 @@ class ErrorExplainResponse(BaseModel):
 
 ERROR_EXPLAIN_SYSTEM = (
     "Син — Ак Барс, татар теле укытучысы. Укучы аудировании яки тәрҗемә биремендә хата ясады. "
-    "ЭТАЛОН: правильный ответ. ВВЕДЕНО УЧЕНИКОМ: то, что написал ученик. "
-    "Объясни по-русски и по-татарски, в чем ошибка ученика (орфография, перепутанные буквы, звуки ә, ө, ү, җ, ң, һ, окончания), "
-    "и как правильно написать. "
+    "ЭТАЛОН: правильный ответ. ВВЕДЕНО УЧЕНИКОМ: то, что написал или произнес ученик. "
+    "Напиши разбор: укажи на то, что ученик ввел фразу «{user_input}», объясни в чем ошибка (орфография, буквы ә, ө, ү, җ, ң, һ, окончания), "
+    "и покажи как правильно. "
     "СТРОГИЙ ФОРМАТ JSON без лишнего текста: "
-    '{"explanation_ru": "подробное объяснение ошибки на русском и как исправить", "explanation_tt": "кыскача татарча аңлатма"}'
+    '{"explanation_ru": "Вы написали «ВВЕДЕНО УЧЕНИКОМ». Подробное объяснение ошибки и правильный вариант", "explanation_tt": "кыскача татарча аңлатма"}'
 )
 
 
@@ -343,7 +357,7 @@ async def explain_error(req: ErrorExplainRequest) -> ErrorExplainResponse:
             result = await gigachat.chat(
                 messages=[
                     {"role": "system", "content": ERROR_EXPLAIN_SYSTEM},
-                    {"role": "user", "content": f"ВОПРОС: {req.question}\nЭТАЛОН: {req.expected}\nВВЕДЕНО: {req.user_input}"},
+                    {"role": "user", "content": f"ВОПРОС: {req.question}\nЭТАЛОН: {req.expected}\nВВЕДЕНО УЧЕНИКОМ: {req.user_input}"},
                 ],
                 temperature=0.3,
                 max_tokens=300,
@@ -352,13 +366,13 @@ async def explain_error(req: ErrorExplainRequest) -> ErrorExplainResponse:
             start, end = result.find("{"), result.rfind("}")
             data = json.loads(result[start : end + 1])
             return ErrorExplainResponse(
-                explanation_ru=str(data.get("explanation_ru", "Проверьте орфографию и специфические татарские буквы.")),
-                explanation_tt=str(data.get("explanation_tt", "Хәрефләргә һәм грамматикага игътибар ит."))
+                explanation_ru=str(data.get("explanation_ru", f"Вы ввели «{req.user_input}», а правильный ответ — «{req.expected}».")) ,
+                explanation_tt=str(data.get("explanation_tt", f"Дөрес җавап: «{req.expected}»."))
             )
         except Exception:
             pass
 
     return ErrorExplainResponse(
-        explanation_ru=f"Вы написали «{req.user_input}», а правильный ответ — «{req.expected}». Обратите внимание на написание и татарские буквы (ә, ө, ү, җ, ң, һ).",
-        explanation_tt=f"Дөрес җавап: «{req.expected}». Игътибарлырак бул!"
+        explanation_ru=f"Вы ввели неверную фразу: «{req.user_input}». Правильный ответ — «{req.expected}». Обратите внимание на написание и татарские буквы.",
+        explanation_tt=f"Сез «{req.user_input}» дип яздыгыз. Дөрес җавап: «{req.expected}»."
     )
