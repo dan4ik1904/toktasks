@@ -3,20 +3,7 @@
 import { useState, useRef, useCallback } from "react";
 import { CatSprite } from "@/components/cat-sprite";
 import { useStore } from "@/store/use-store";
-
-const FOODS = [
-  { id: "ipi", name: "Ипек", icon: "🍞", hunger: 20 },
-  { id: "chai", name: "Чәй", icon: "🍵", hunger: 15 },
-  { id: "echpochmak", name: "Эчпочмак", icon: "🥟", hunger: 30 },
-  { id: "balesh", name: "Бәлеш", icon: "🥧", hunger: 25 },
-  { id: "oochpochmak", name: "Өчпочмак", icon: "🔺", hunger: 35 },
-];
-
-const OUTFITS = [
-  { id: "default", name: "Тюбетейка", price: 0, icon: "🧢" },
-  { id: "kamzol", name: "Камзол", price: 100, icon: "🥋" },
-  { id: "platok", name: "Платок", price: 80, icon: "🧣" },
-];
+import { FOODS, OUTFITS, type Food, type Outfit } from "@/games/catalog";
 
 function audioBufferToWav(buffer: AudioBuffer): Blob {
   const numChannels = buffer.numberOfChannels;
@@ -65,7 +52,7 @@ function audioBufferToWav(buffer: AudioBuffer): Blob {
 
 export default function CatPage() {
   const store = useStore();
-  const { cat, feedCat, dressCat, playWithCat, spendPoints, buyShopItem, shopPurchases } = store;
+  const { cat, points, gender, feedCat, dressCat, playWithCat, spendPoints, buyShopItem, shopPurchases } = store;
   const [tab, setTab] = useState<"chat" | "feed" | "play" | "dress">("chat");
   const [chatMsg, setChatMsg] = useState("");
   const [chatHistory, setChatHistory] = useState<{ role: string; text: string }[]>([]);
@@ -86,9 +73,24 @@ export default function CatPage() {
     setTimeout(() => setFloatEmoji(null), 1000);
   };
 
-  const handleFeed = (food: (typeof FOODS)[0]) => {
-    feedCat(food.id, food.hunger, "happy");
+  // Ашхана: еда стоит баллы, сытность растёт, анимация «ням-ням»
+  const [feedMsg, setFeedMsg] = useState<string | null>(null);
+
+  const handleFeed = (food: Food) => {
+    if (cat.hunger >= 100) {
+      setFeedMsg("Тук! Кот уже сыт 😊");
+      setTimeout(() => setFeedMsg(null), 1500);
+      return;
+    }
+    if (!spendPoints(food.price)) {
+      setFeedMsg(`Не хватает баллов: ${food.nameTt} стоит ${food.price} 💰`);
+      setTimeout(() => setFeedMsg(null), 1800);
+      return;
+    }
+    feedCat(food.id, food.satiety, "happy");
     showFloat(food.icon);
+    setFeedMsg("Ням-ням! Тәмле! 😋");
+    setTimeout(() => setFeedMsg(null), 1500);
   };
 
   const handlePlay = () => {
@@ -96,7 +98,7 @@ export default function CatPage() {
     showFloat("🎾");
   };
 
-  const handleDress = (outfit: (typeof OUTFITS)[0]) => {
+  const handleDress = (outfit: Outfit) => {
     if (outfit.price > 0 && !shopPurchases.includes(outfit.id)) {
       if (!spendPoints(outfit.price)) return;
       buyShopItem(outfit.id);
@@ -253,10 +255,16 @@ export default function CatPage() {
 
   return (
     <div className="page-shell" style={{ alignItems: "center" }}>
-      <h1 className="page-title" style={{ color: "var(--gold)" }}>Мой кот</h1>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+        <h1 className="page-title" style={{ color: "var(--gold)" }}>Мой кот</h1>
+        {gender && (
+          <span className="badge badge-accent">{gender === "kyz" ? "Кыз 🎀" : "Малай 🧢"}</span>
+        )}
+        <span className="badge badge-gold">💰 {points}</span>
+      </div>
 
       <div style={{ position: "relative" }}>
-        <CatSprite cat={{ ...cat, mood: catMood as typeof cat.mood }} size={200} />
+        <CatSprite cat={{ ...cat, mood: catMood as typeof cat.mood }} gender={gender} size={200} />
         {floatEmoji && (
           <div style={{ position: "absolute", top: -20, left: "50%", fontSize: "2rem", animation: "float-up 1s ease forwards" }}>
             {floatEmoji}
@@ -285,7 +293,7 @@ export default function CatPage() {
           <button key={t} onClick={() => setTab(t)}
             className={"btn " + (tab === t ? "btn-primary" : "btn-ghost")}
             style={{ flex: 1, fontSize: "0.75rem", padding: "0.5rem" }}>
-            {t === "chat" ? "Чат" : t === "feed" ? "Кормить" : t === "play" ? "Играть" : "Одеть"}
+            {t === "chat" ? "Чат" : t === "feed" ? "Ашхана" : t === "play" ? "Играть" : "Кибет"}
           </button>
         ))}
       </div>
@@ -337,14 +345,32 @@ export default function CatPage() {
         )}
 
         {tab === "feed" && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.5rem" }}>
-            {FOODS.map((food) => (
-              <button key={food.id} onClick={() => handleFeed(food)}
-                className="btn btn-ghost"
-                style={{ flexDirection: "column", padding: "0.75rem", fontSize: "0.75rem" }}>
-                <span style={{ fontSize: "1.5rem" }}>{food.icon}</span>{food.name}
-              </button>
-            ))}
+          <div>
+            <p style={{ fontSize: "0.75rem", color: "var(--fg-muted)", textAlign: "center", marginBottom: 8 }}>
+              Ашхана: покорми кота — сытность даёт ×баллы в играх
+            </p>
+            {feedMsg && (
+              <p className="animate-pop" style={{ fontSize: "0.78rem", fontWeight: 700, textAlign: "center", marginBottom: 8, color: "var(--gold)" }}>
+                {feedMsg}
+              </p>
+            )}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.5rem" }}>
+              {FOODS.map((food) => {
+                const afford = points >= food.price;
+                return (
+                  <button key={food.id} onClick={() => handleFeed(food)}
+                    className="btn btn-ghost"
+                    style={{ flexDirection: "column", padding: "0.75rem 0.4rem", fontSize: "0.72rem", opacity: afford ? 1 : 0.55 }}>
+                    <span style={{ fontSize: "1.5rem" }}>{food.icon}</span>
+                    <span style={{ fontWeight: 700 }}>{food.nameTt}</span>
+                    <span style={{ fontSize: "0.65rem", color: "var(--fg-muted)" }}>+{food.satiety}%</span>
+                    <span style={{ fontSize: "0.65rem", color: afford ? "var(--gold)" : "var(--danger)", fontWeight: 700 }}>
+                      {food.price} 💰
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
 
@@ -356,21 +382,26 @@ export default function CatPage() {
         )}
 
         {tab === "dress" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-            {OUTFITS.map((outfit) => {
-              const owned = outfit.price === 0 || shopPurchases.includes(outfit.id);
-              const active = cat.outfit === outfit.id;
-              return (
-                <button key={outfit.id} onClick={() => handleDress(outfit)}
-                  className={"btn " + (active ? "btn-gold" : "btn-ghost")}
-                  style={{ justifyContent: "space-between", padding: "0.75rem" }}>
-                  <span>{outfit.icon} {outfit.name}</span>
-                  <span style={{ fontSize: "0.75rem", color: owned ? "var(--success)" : "var(--gold)" }}>
-                    {owned ? (active ? "Надето" : "Надеть") : outfit.price + " поинтов"}
-                  </span>
-                </button>
-              );
-            })}
+          <div>
+            <p style={{ fontSize: "0.75rem", color: "var(--fg-muted)", textAlign: "center", marginBottom: 8 }}>
+              Кибет: купи и надень — вещи хранятся в инвентаре
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+              {OUTFITS.map((outfit) => {
+                const owned = outfit.price === 0 || shopPurchases.includes(outfit.id);
+                const active = cat.outfit === outfit.id;
+                return (
+                  <button key={outfit.id} onClick={() => handleDress(outfit)}
+                    className={"btn " + (active ? "btn-gold" : "btn-ghost")}
+                    style={{ justifyContent: "space-between", padding: "0.75rem" }}>
+                    <span>{outfit.icon} {outfit.name} <span style={{ color: "var(--fg-muted)", fontSize: "0.7rem" }}>{outfit.nameTt}</span></span>
+                    <span style={{ fontSize: "0.75rem", color: owned ? "var(--success)" : "var(--gold)" }}>
+                      {owned ? (active ? "Надето" : "Надеть") : outfit.price + " 💰"}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
@@ -379,7 +410,10 @@ export default function CatPage() {
         <div style={{ textAlign: "center" }}>
           <div style={{ fontSize: "0.65rem", color: "var(--fg-muted)" }}>Настроение</div>
           <div style={{ fontSize: "1.2rem" }}>
-            {catMood === "happy" ? "😊" : catMood === "hungry" ? "😿" : catMood === "sleeping" ? "😴" : catMood === "playful" ? "🎉" : catMood === "thinking" ? "🤔" : "😺"}
+            {catMood === "sleeping" || cat.hunger <= 0 ? "😴" : catMood === "happy" ? "😊" : catMood === "hungry" || cat.hunger < 40 ? "😿" : catMood === "playful" ? "🎉" : catMood === "thinking" ? "🤔" : "😺"}
+          </div>
+          <div style={{ fontSize: "0.62rem", color: "var(--fg-muted)" }}>
+            {cat.hunger <= 0 ? "Спит (покорми!)" : cat.hunger < 40 ? "Голоден" : cat.hunger >= 75 ? "Сыт ×1.5" : "Норм ×1.0"}
           </div>
         </div>
         <div style={{ textAlign: "center" }}>

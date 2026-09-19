@@ -5,11 +5,39 @@ import { persist } from "zustand/middleware";
 
 export interface CatState {
   mood: "happy" | "normal" | "hungry" | "sleeping" | "playing";
-  hunger: number;
+  hunger: number; // сытность 0..100, старт 100%
   outfit: string;
   exp: number;
   level: number;
 }
+
+// Пол тамагочи: влияет на внешность и рекомендации одежды
+export type PetGender = "malai" | "kyz" | null;
+
+// Уровни питомца по ТЗ: Бала → Үсмер (1000 баллов + 5 игр) → Олы (3000 + 15)
+export interface PetRank {
+  level: 1 | 2 | 3;
+  name: string;
+  nameTt: string;
+}
+
+export function petRank(points: number, gamesPlayed: number): PetRank {
+  if (points >= 3000 && gamesPlayed >= 15) return { level: 3, name: "Олы", nameTt: "Взрослый" };
+  if (points >= 1000 && gamesPlayed >= 5) return { level: 2, name: "Үсмер", nameTt: "Подросток" };
+  return { level: 1, name: "Бала", nameTt: "Малыш" };
+}
+
+// Коэффициент баллов от сытности по ТЗ:
+// 75%+ → ×1.5, 40–75% → ×1.0, <40% → ×0.5, 0% → 0 (спит, игры недоступны)
+export function satietyMultiplier(hunger: number): number {
+  if (hunger <= 0) return 0;
+  if (hunger >= 75) return 1.5;
+  if (hunger >= 40) return 1;
+  return 0.5;
+}
+
+// Одна мини-игра отнимает 12% сытности (норма ТЗ 10–15%)
+export const GAME_SATIETY_COST = 12;
 
 export interface Achievement {
   id: string;
@@ -35,6 +63,8 @@ interface AppState {
   completedTopics: string[];
   achievements: Achievement[];
   shopPurchases: string[];
+  gender: PetGender;
+  gamesPlayed: number;
 
   setTgId: (id: string) => void;
   setName: (name: string) => void;
@@ -52,6 +82,9 @@ interface AppState {
   dressCat: (outfitId: string) => void;
   playWithCat: () => void;
   addCatExp: (n: number) => void;
+  setGender: (g: Exclude<PetGender, null>) => void;
+  registerGame: () => void;
+  canPlay: () => boolean;
   unlockAchievement: (id: string) => void;
   buyShopItem: (itemId: string) => boolean;
   syncFromServer: (data: Record<string, unknown>) => void;
@@ -63,7 +96,7 @@ const HEART_REGEN_MS = 20 * 60 * 1000;
 
 const DEFAULT_CAT: CatState = {
   mood: "normal",
-  hunger: 50,
+  hunger: 100, // стартовая сытность по ТЗ — 100%
   outfit: "default",
   exp: 0,
   level: 1,
@@ -107,6 +140,8 @@ export const useStore = create<AppState>()(
       completedTopics: [],
       achievements: [...DEFAULT_ACHIEVEMENTS],
       shopPurchases: [],
+      gender: null,
+      gamesPlayed: 0,
 
       setTgId: (id) => set({ tgId: id }),
       setName: (name) => set({ name }),
@@ -215,6 +250,23 @@ export const useStore = create<AppState>()(
         cat: { ...s.cat, mood: "playing", exp: s.cat.exp + 3, level: levelOf(s.cat.exp + 3) },
       })),
 
+      // Выбор пола при первом запуске (Малай/Кыз)
+      setGender: (g) => set({ gender: g }),
+
+      // Играть можно только пока сытность > 0 (иначе спит)
+      canPlay: () => get().cat.hunger > 0,
+
+      // Учёт сыгранной мини-игры: −12% сытности, настроение по остатку
+      registerGame: () => set((s) => {
+        const hunger = Math.max(0, s.cat.hunger - GAME_SATIETY_COST);
+        const mood: CatState["mood"] =
+          hunger <= 0 ? "sleeping" : hunger < 40 ? "hungry" : s.cat.mood === "sleeping" ? "normal" : s.cat.mood;
+        return {
+          gamesPlayed: s.gamesPlayed + 1,
+          cat: { ...s.cat, hunger, mood },
+        };
+      }),
+
       addCatExp: (n) => set((s) => ({
         cat: { ...s.cat, exp: s.cat.exp + n, level: levelOf(s.cat.exp + n) },
       })),
@@ -258,6 +310,8 @@ export const useStore = create<AppState>()(
         completedTopics: [],
         achievements: [...DEFAULT_ACHIEVEMENTS],
         shopPurchases: [],
+        gender: null,
+        gamesPlayed: 0,
       }),
     }),
     { name: "tatarcha-store" },

@@ -1,9 +1,11 @@
 "use client";
 
-import Link from "next/link";
-import { useStore } from "@/store/use-store";
+import { useState } from "react";
+import { useStore, petRank } from "@/store/use-store";
 import { useTheme } from "@/providers/theme-provider";
-import { Cat, Star, Zap, Flame, Trophy, RotateCcw, Sun, Moon } from "lucide-react";
+import { Cat, Star, Zap, Flame, Trophy, RotateCcw, Sun, Moon, QrCode } from "lucide-react";
+import { OUTFITS } from "@/games/catalog";
+import { PartnerModal } from "@/components/partner-modal";
 
 const SHOP_ITEMS = [
   { id: "merch-tshirt", title: "Футболка TATARCHA", desc: "Мерч от команды", price: 300, category: "merch" },
@@ -15,10 +17,12 @@ const SHOP_ITEMS = [
 ];
 
 export default function ProfilePage() {
-  const { name, setName, points, streak, hearts, cat, completedTasks, completedTopics, achievements, shopPurchases, spendPoints, buyShopItem, reset } = useStore();
+  const { name, setName, points, streak, hearts, cat, gender, setGender, gamesPlayed, dressCat, completedTasks, completedTopics, achievements, shopPurchases, spendPoints, buyShopItem, reset } = useStore();
   const { theme, toggleTheme } = useTheme();
+  const [partnerOpen, setPartnerOpen] = useState(false);
   const level = Math.min(50, Math.floor(points / 100) + 1);
   const xpInLevel = points % 100;
+  const rank = petRank(points, gamesPlayed);
   const unlockedAchievements = achievements.filter((a) => a.unlocked);
 
   return (
@@ -46,6 +50,14 @@ export default function ProfilePage() {
           <div style={{ fontSize: "0.75rem", color: "var(--fg-muted)" }}>Уровень {level}</div>
           <div className="progress-track" style={{ marginTop: 4 }}>
             <div className="progress-fill progress-fill-gold" style={{ width: xpInLevel + "%" }} />
+          </div>
+          {/* Ранг питомца и пол */}
+          <div style={{ display: "flex", gap: "0.4rem", marginTop: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <span className="badge badge-gold">🐱 {rank.name} ({gamesPlayed} игр)</span>
+            <span className="badge badge-accent">{gender === "kyz" ? "Кыз 🎀" : gender === "malai" ? "Малай 🧢" : "Пол не выбран"}</span>
+            <button className="btn btn-sm btn-ghost" onClick={() => setGender(gender === "kyz" ? "malai" : "kyz")}>
+              Сменить: {gender === "kyz" ? "Малай" : "Кыз"}
+            </button>
           </div>
         </div>
       </div>
@@ -88,6 +100,54 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
+
+      {/* Shop */}
+      <div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <span style={{ fontWeight: 700, fontSize: "0.85rem" }}>👕 Кибет — одежда кота</span>
+          <span className="badge badge-gold">💰 {points}</span>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+          {OUTFITS.filter((o) => o.price > 0).map((item) => {
+            const bought = shopPurchases.includes(item.id);
+            const worn = cat.outfit === item.id;
+            return (
+              <div key={item.id} className="card" style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                <span style={{ fontSize: "1.6rem" }}>{item.icon}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 600, fontSize: "0.85rem" }}>{item.name}</div>
+                  <div style={{ fontSize: "0.7rem", color: "var(--fg-muted)" }}>{item.nameTt}</div>
+                </div>
+                {worn ? (
+                  <span className="badge badge-gold">Надето ✓</span>
+                ) : bought ? (
+                  <button className="btn btn-sm btn-primary" onClick={() => dressCat(item.id)}>
+                    Надеть
+                  </button>
+                ) : (
+                  <button
+                    className={"btn btn-sm " + (points >= item.price ? "btn-gold" : "btn-ghost")}
+                    disabled={points < item.price}
+                    onClick={() => { if (spendPoints(item.price)) buyShopItem(item.id); }}>
+                    {item.price} 💰
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Партнёр Тюбетей */}
+      <button className="card card-lift card-gold" onClick={() => setPartnerOpen(true)} style={{ display: "flex", alignItems: "center", gap: "0.75rem", cursor: "pointer", width: "100%", textAlign: "left" }}>
+        <span style={{ fontSize: "1.8rem" }}>🍲</span>
+        <span style={{ flex: 1 }}>
+          <span style={{ fontWeight: 800, fontSize: "0.85rem", color: "var(--fg)", display: "block" }}>Тюбетей • скидки за баллы</span>
+          <span style={{ fontSize: "0.7rem", color: "var(--fg-muted)" }}>показать QR на кассе</span>
+        </span>
+        <QrCode size={20} style={{ color: "var(--gold)" }} />
+      </button>
+      <PartnerModal open={partnerOpen} onClose={() => setPartnerOpen(false)} />
 
       {/* Shop */}
       <div>

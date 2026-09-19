@@ -295,6 +295,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   border: 1px solid var(--border);
   backdrop-filter: blur(14px);
 }
+.seg-4 button { font-size: 0.74rem; padding: 0.6rem 0.4rem; }
 .seg button {
   border: none;
   border-radius: 0.8rem;
@@ -403,6 +404,64 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
 .game-canvas-wrap { overflow-x: auto; border-radius: var(--radius-lg); }
 .game-canvas-wrap canvas { display: block; width: 100%; height: auto; touch-action: none; }
+
+/* ===== FAB помощника (правый нижний угол) ===== */
+.assistant-fab {
+  position: fixed;
+  right: 1rem;
+  bottom: calc(5rem + env(safe-area-inset-bottom));
+  z-index: 55;
+  width: 3.2rem;
+  height: 3.2rem;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--gold) 60%, transparent);
+  background: linear-gradient(135deg, var(--accent-deep), var(--accent));
+  color: #fff;
+  font-size: 1.4rem;
+  cursor: pointer;
+  box-shadow: var(--glow-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease;
+}
+.assistant-fab:active { transform: scale(0.92); }
+
+/* ===== Модалка (помощник, партнёр, выбор пола) ===== */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom));
+}
+.modal-sheet {
+  width: min(520px, 100%);
+  max-height: 82dvh;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--gold) 40%, var(--border));
+  border-radius: 1.4rem;
+  padding: 1.1rem;
+  box-shadow: var(--card-shadow-hover);
+}
+
+/* Поле ввода помощника */
+.helper-input {
+  width: 100%;
+  padding: 0.7rem 0.9rem;
+  border-radius: 0.9rem;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+  font-size: 0.9rem;
+  font-family: inherit;
+}
+.helper-input:focus { border-color: var(--accent); outline: none; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

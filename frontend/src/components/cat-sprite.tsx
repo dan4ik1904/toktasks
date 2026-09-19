@@ -1,20 +1,26 @@
 "use client";
 
-import type { CatState } from "@/store/use-store";
+import type { CatState, PetGender } from "@/store/use-store";
 
 interface CatSpriteProps {
   cat: CatState;
   size?: number;
   onClick?: () => void;
+  /** Пол питомца: у Кыз — бантик, у Малай — без */
+  gender?: PetGender;
 }
 
-export function CatSprite({ cat, size = 160, onClick }: CatSpriteProps) {
-  const bodyColor = "#2A3A5C";
-  const bellyColor = "#3A4E72";
+export function CatSprite({ cat, size = 160, onClick, gender = null }: CatSpriteProps) {
+  // «Смена цвета волос» из Кибета — розовая шёрстка
+  const isPinkFur = cat.outfit === "hair";
+  const bodyColor = isPinkFur ? "#8a5a7a" : "#2A3A5C";
+  const bellyColor = isPinkFur ? "#a5769a" : "#3A4E72";
   const eyeColor =
     cat.mood === "happy" || cat.mood === "playing" ? "#D4AF37" : "#8892B0";
   const tubeteikaColor = "#0F5132";
-  const tubeteikaGold = "#D4AF37";
+  // Золотая тюбетейка из Кибета — нарядная
+  const isGoldTubeteika = cat.outfit === "tubeteika-gold";
+  const tubeteikaGold = isGoldTubeteika ? "#FFF3C4" : "#D4AF37";
   const eyeY = cat.mood === "sleeping" ? 8 : 6;
 
   let animStyle = "";
@@ -72,15 +78,22 @@ export function CatSprite({ cat, size = 160, onClick }: CatSpriteProps) {
         <polygon points="78,30 81,16 70,27" fill={bellyColor} opacity="0.5" />
 
         {/* Tubeteika */}
-        <ellipse cx="60" cy="28" rx="20" ry="8" fill={tubeteikaColor} />
-        <rect x="42" y="20" width="36" height="10" rx="4" fill={tubeteikaColor} />
+        <ellipse cx="60" cy="28" rx="20" ry="8" fill={isGoldTubeteika ? "#C9A430" : tubeteikaColor} />
+        <rect x="42" y="20" width="36" height="10" rx="4" fill={isGoldTubeteika ? "#C9A430" : tubeteikaColor} />
         <line x1="48" y1="22" x2="48" y2="28" stroke={tubeteikaGold} strokeWidth="1.5" opacity="0.6" />
         <line x1="56" y1="21" x2="56" y2="29" stroke={tubeteikaGold} strokeWidth="1.5" opacity="0.6" />
         <line x1="64" y1="21" x2="64" y2="29" stroke={tubeteikaGold} strokeWidth="1.5" opacity="0.6" />
         <line x1="72" y1="22" x2="72" y2="28" stroke={tubeteikaGold} strokeWidth="1.5" opacity="0.6" />
         <circle cx="60" cy="20" r="3" fill={tubeteikaGold} />
 
-        {/* Eyes */}
+        {/* Бантик для Кыз */}
+        {gender === "kyz" && (
+          <g>
+            <circle cx="86" cy="18" r="5" fill="#E86A92" />
+            <circle cx="94" cy="22" r="5" fill="#E86A92" />
+            <circle cx="90" cy="20" r="2.5" fill="#C1272D" />
+          </g>
+        )}
         {cat.mood === "sleeping" ? (
           <>
             <line x1="48" y1={eyeY} x2="55" y2={eyeY} stroke={eyeColor} strokeWidth="2" strokeLinecap="round" />
@@ -124,6 +137,16 @@ export function CatSprite({ cat, size = 160, onClick }: CatSpriteProps) {
         {/* Outfit overlay: Kamzol */}
         {cat.outfit === "kamzol" && (
           <rect x="42" y="65" width="36" height="20" rx="4" fill="#8B0000" opacity="0.8" />
+        )}
+
+        {/* Outfit overlay: Ichigi (сапожки на лапках) */}
+        {cat.outfit === "ichigi" && (
+          <>
+            <ellipse cx="42" cy="102" rx="11" ry="7" fill="#8B0000" />
+            <ellipse cx="78" cy="102" rx="11" ry="7" fill="#8B0000" />
+            <rect x="31" y="96" width="22" height="4" rx="2" fill="#D4AF37" />
+            <rect x="67" y="96" width="22" height="4" rx="2" fill="#D4AF37" />
+          </>
         )}
 
         {/* Outfit overlay: Platok */}
