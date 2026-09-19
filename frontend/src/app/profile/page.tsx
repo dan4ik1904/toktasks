@@ -3,31 +3,52 @@
 import { useState } from "react";
 import { useStore } from "@/store/use-store";
 import { useTheme } from "@/providers/theme-provider";
-import { Star, Zap, Flame, Trophy, RotateCcw, Sun, Moon, QrCode } from "lucide-react";
+import { useLang, type Lang } from "@/store/use-lang";
+import { Star, Zap, Flame, Trophy, RotateCcw, Sun, Moon, QrCode, Globe } from "lucide-react";
 import { PartnerModal } from "@/components/partner-modal";
-
-const REWARDS = [
-  { id: "cafe-discount", title: "Скидка 10% в ресторане «Тюбетей»", desc: "Обмен на 1000 баллов", price: 1000 },
-  { id: "cafe-discount-2", title: "Скидка 20% в ресторане «Тюбетей»", desc: "Обмен на 2500 баллов", price: 2500 },
-  { id: "echpochmak", title: "Бесплатный эчпочмак в «Тюбетей»", desc: "Обмен на 5000 баллов", price: 5000 },
-  { id: "sticker-pack", title: "Стикерпак с татарскими фразами", desc: "Telegram стикеры", price: 150 },
-];
+import { haptic } from "@/lib/telegram";
 
 export default function ProfilePage() {
-  const { name, setName, points, streak, hearts, completedTasks, completedTopics, achievements, reset } = useStore();
+  const { name, setName, points, streak, hearts, completedTasks, achievements, reset } = useStore();
   const { theme, toggleTheme } = useTheme();
+  const { lang, setLang } = useLang();
   const [partnerOpen, setPartnerOpen] = useState(false);
   const level = Math.min(50, Math.floor(points / 100) + 1);
   const xpInLevel = points % 100;
   const unlockedAchievements = achievements.filter((a) => a.unlocked);
 
+  const LANGUAGES: { id: Lang; label: string }[] = [
+    { id: "ru", label: "Русский" },
+    { id: "en", label: "English" },
+    { id: "tt", label: "Татарча" },
+  ];
+
   return (
     <div className="page-shell">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1 className="page-title">Профиль</h1>
-        <button className="btn btn-ghost" onClick={toggleTheme}>
+        <h1 className="page-title">Профиль / Profile</h1>
+        <button className="btn btn-ghost" onClick={() => { haptic("light"); toggleTheme(); }}>
           {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
         </button>
+      </div>
+
+      {/* Выбор языка интерфейса (RU / EN / TT) */}
+      <div className="card" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.85rem", fontWeight: 700 }}>
+          <Globe size={18} style={{ color: "var(--accent)" }} /> Язык / Language:
+        </div>
+        <div style={{ display: "flex", gap: 4 }}>
+          {LANGUAGES.map((l) => (
+            <button
+              key={l.id}
+              onClick={() => { haptic("light"); setLang(l.id); }}
+              className={"btn btn-sm " + (lang === l.id ? "btn-primary" : "btn-ghost")}
+              style={{ padding: "0.3rem 0.6rem", fontSize: "0.75rem" }}
+            >
+              {l.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* User card */}
@@ -55,7 +76,7 @@ export default function ProfilePage() {
         <div className="card" style={{ textAlign: "center", padding: "0.8rem 0.4rem" }}>
           <Zap size={18} style={{ color: "var(--gold)" }} />
           <div style={{ fontWeight: 800, fontSize: "1.1rem", marginTop: 4 }}>{points}</div>
-          <div style={{ fontSize: "0.62rem", color: "var(--fg-muted)" }}>Баллы</div>
+          <div style={{ fontSize: "0.62rem", color: "var(--fg-muted)" }}>Баллы (XP)</div>
         </div>
         <div className="card" style={{ textAlign: "center", padding: "0.8rem 0.4rem" }}>
           <Flame size={18} style={{ color: "#E74C3C" }} />
@@ -85,7 +106,7 @@ export default function ProfilePage() {
       )}
 
       {/* Партнёр Тюбетей */}
-      <button className="card card-lift card-gold" onClick={() => setPartnerOpen(true)} style={{ display: "flex", alignItems: "center", gap: "0.75rem", cursor: "pointer", width: "100%", textAlign: "left" }}>
+      <button className="card card-lift card-gold" onClick={() => { haptic("medium"); setPartnerOpen(true); }} style={{ display: "flex", alignItems: "center", gap: "0.75rem", cursor: "pointer", width: "100%", textAlign: "left" }}>
         <span style={{ fontSize: "1.8rem" }}>🍲</span>
         <span style={{ flex: 1 }}>
           <span style={{ fontWeight: 800, fontSize: "0.85rem", color: "var(--fg)", display: "block" }}>Тюбетей • скидки за баллы</span>
