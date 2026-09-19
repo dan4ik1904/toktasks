@@ -29,6 +29,7 @@ interface AppState {
   completedTasks: string[];
   completedTopics: string[];
   achievements: Achievement[];
+  shopPurchases: string[];
   gamesPlayed: number;
   userLevel: ProficiencyLevel | null;
   muted: boolean;
@@ -44,6 +45,7 @@ interface AppState {
   completeTopic: (topicSlug: string) => void;
   isTaskCompleted: (taskId: string) => boolean;
   isTopicCompleted: (topicSlug: string) => boolean;
+  buyShopItem: (itemId: string) => boolean;
   registerGame: () => void;
   unlockAchievement: (id: string) => void;
   toggleMute: () => void;
@@ -79,6 +81,7 @@ export const useStore = create<AppState>()(
       completedTasks: [],
       completedTopics: [],
       achievements: [...DEFAULT_ACHIEVEMENTS],
+      shopPurchases: [],
       gamesPlayed: 0,
       userLevel: null,
       muted: false,
@@ -167,6 +170,13 @@ export const useStore = create<AppState>()(
       isTaskCompleted: (taskId) => get().completedTasks.includes(taskId),
       isTopicCompleted: (topicSlug) => get().completedTopics.includes(topicSlug),
 
+      buyShopItem: (itemId) => {
+        const s = get();
+        if (s.shopPurchases.includes(itemId)) return false;
+        set({ shopPurchases: [...s.shopPurchases, itemId] });
+        return true;
+      },
+
       registerGame: () => set((s) => ({ gamesPlayed: s.gamesPlayed + 1 })),
 
       unlockAchievement: (id) => set((s) => {
@@ -190,6 +200,7 @@ export const useStore = create<AppState>()(
         completedTasks: [],
         completedTopics: [],
         achievements: [...DEFAULT_ACHIEVEMENTS],
+        shopPurchases: [],
         gamesPlayed: 0,
         userLevel: null,
       }),

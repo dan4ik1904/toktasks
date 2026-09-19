@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useStore } from "@/store/use-store";
 import { useTheme } from "@/providers/theme-provider";
 import { useLang, type Lang } from "@/store/use-lang";
-import { Zap, Flame, Trophy, Sun, Moon, QrCode, Globe, VolumeX, Volume2 } from "lucide-react";
+import { Zap, Flame, Trophy, Sun, Moon, QrCode, Globe, VolumeX, Volume2, ShoppingBag, ChevronRight } from "lucide-react";
 import { PartnerModal } from "@/components/partner-modal";
 import { haptic } from "@/lib/telegram";
 
@@ -31,6 +32,20 @@ export default function ProfilePage() {
           {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
         </button>
       </div>
+
+      {/* Кнопка Маркет наград */}
+      <Link href="/market" onClick={() => haptic("light")} style={{ textDecoration: "none" }}>
+        <div className="card card-lift card-gold" style={{ display: "flex", alignItems: "center", gap: "0.85rem", cursor: "pointer" }}>
+          <div style={{ width: 44, height: 44, borderRadius: "50%", background: "var(--gold-soft)", border: "1px solid var(--gold)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--gold)", flexShrink: 0 }}>
+            <ShoppingBag size={22} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 800, fontSize: "0.9rem", color: "var(--fg)" }}>Маркет: Скидки, промокоды и мерч</div>
+            <div style={{ fontSize: "0.72rem", color: "var(--fg-muted)" }}>Обменивай XP на акции, купоны и подарки</div>
+          </div>
+          <ChevronRight size={18} style={{ color: "var(--gold)" }} />
+        </div>
+      </Link>
 
       {/* Настройки: Язык интерфейса */}
       <div className="card" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
