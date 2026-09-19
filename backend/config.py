@@ -33,5 +33,9 @@ class Settings(BaseSettings):
     progress_file: str = "data/progress.json"
     db_file: str = "data/app.db"
 
+    jwt_secret: str = "tatar-uku-secret-change-in-prod"
+    jwt_algorithm: str = "HS256"
+    jwt_expire_hours: int = 720  # 30 days
+
 
 settings = Settings()

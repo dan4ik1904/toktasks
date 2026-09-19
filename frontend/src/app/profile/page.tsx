@@ -1,26 +1,43 @@
 "use client";
 
 import Link from "next/link";
-import { Bot, Flame, RotateCcw, Trophy } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Bot, Flame, LogOut, RotateCcw, Trophy } from "lucide-react";
 import { ISLANDS } from "@/data/islands";
 import { levelOf, useProgress } from "@/store/use-progress";
 import { Progress } from "@/components/ui/progress";
+import { useAuth } from "@/providers/auth-provider";
+import { fetchUserStatsApi, fetchStatsApi } from "@/lib/auth";
 
 export default function ProfilePage() {
   const xp = useProgress((s) => s.xp);
   const streak = useProgress((s) => s.streak);
   const completedLessons = useProgress((s) => s.completedLessons);
   const reset = useProgress((s) => s.reset);
+  const { user, isAuthenticated, logout } = useAuth();
   const { level, title, into } = levelOf(xp);
   const totalLessons = ISLANDS.reduce((n, isl) => n + isl.lessons.length, 0);
+
+  const [platformStats, setPlatformStats] = useState<Record<string, unknown> | null>(null);
+  const [userStats, setUserStats] = useState<Record<string, unknown> | null>(null);
+
+  useEffect(() => {
+    void fetchStatsApi().then(setPlatformStats);
+    if (isAuthenticated) void fetchUserStatsApi().then(setUserStats);
+  }, [isAuthenticated]);
+
+  const displayName = user?.display_name ?? "Айгуль";
 
   return (
     <main className="flex w-full flex-1 flex-col gap-4 px-4 pt-4 pb-6">
       <section className="flex flex-col items-center gap-2 rounded-[1.75rem] border border-[var(--line)] bg-[var(--surface)] p-6 text-center">
         <span className="avatar-seal flex size-20 items-center justify-center rounded-full text-3xl font-black">
-          А
+          {displayName.slice(0, 1)}
         </span>
-        <h1 className="text-xl font-bold">Айгуль</h1>
+        <h1 className="text-xl font-bold">{displayName}</h1>
+        {user?.username && (
+          <p className="text-xs text-[var(--muted)]">@{user.username}</p>
+        )}
         <p className="text-sm font-bold text-[var(--gold)]">
           {level} уровень · {title}
         </p>
@@ -37,6 +54,46 @@ export default function ProfilePage() {
         </p>
       </section>
 
+      {isAuthenticated && userStats && (
+        <section className="rounded-[1.75rem] border border-[var(--line)] bg-[var(--surface)] p-4">
+          <h2 className="mb-3 text-sm font-bold">Статистика</h2>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <p className="text-[var(--muted)]">Уроков пройдено</p>
+              <p className="font-bold tabular-nums">{(userStats.total_lessons as number) ?? 0}</p>
+            </div>
+            <div>
+              <p className="text-[var(--muted)]">Место в рейтинге</p>
+              <p className="font-bold tabular-nums">#{(userStats.rank as number) ?? "—"}</p>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {platformStats && (
+        <section className="rounded-[1.75rem] border border-[var(--line)] bg-[var(--surface)] p-4">
+          <h2 className="mb-3 text-sm font-bold">Платформа</h2>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <p className="text-[var(--muted)]">Учеников</p>
+              <p className="font-bold tabular-nums">{(platformStats.total_users as number) ?? 0}</p>
+            </div>
+            <div>
+              <p className="text-[var(--muted)]">уроков пройдено</p>
+              <p className="font-bold tabular-nums">{(platformStats.total_lessons_completed as number) ?? 0}</p>
+            </div>
+            <div>
+              <p className="text-[var(--muted)]">Активных сегодня</p>
+              <p className="font-bold tabular-nums">{(platformStats.active_today as number) ?? 0}</p>
+            </div>
+            <div>
+              <p className="text-[var(--muted)]">Топ XP</p>
+              <p className="font-bold tabular-nums">{(platformStats.top_xp as number) ?? 0}</p>
+            </div>
+          </div>
+        </section>
+      )}
+
       <Link
         href="/assistant"
         className="flex items-center gap-3 rounded-[1.75rem] border border-[var(--line)] bg-[var(--surface)] p-4"
@@ -51,6 +108,23 @@ export default function ProfilePage() {
           </span>
         </span>
       </Link>
+
+      {isAuthenticated ? (
+        <button
+          onClick={logout}
+          className="flex items-center justify-center gap-2 rounded-[1.75rem] border border-[var(--line)] p-3 text-sm text-[var(--muted)] hover:bg-[var(--surface-2)]"
+        >
+          <LogOut className="size-4" aria-hidden />
+          Выйти из аккаунта
+        </button>
+      ) : (
+        <Link
+          href="/login"
+          className="flex items-center justify-center gap-2 rounded-[1.75rem] border border-[var(--line)] p-3 text-sm font-bold text-[var(--accent)] hover:bg-[var(--surface-2)]"
+        >
+          Войти или зарегистрироваться
+        </Link>
+      )}
 
       <button
         onClick={() => {

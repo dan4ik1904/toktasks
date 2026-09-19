@@ -1,15 +1,23 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Flame, Sparkles, Trophy } from "lucide-react";
 import { ISLANDS, islandProgress } from "@/data/islands";
 import { useProgress, XP_PER_LESSON } from "@/store/use-progress";
 import { IslandIcon } from "@/components/island-icon";
+import { fetchStatsApi } from "@/lib/auth";
 
 export default function ProgressPage() {
   const { xp, completedLessons } = useProgress();
   const totalLessons = ISLANDS.reduce((n, isl) => n + isl.lessons.length, 0);
   const overall =
     totalLessons === 0 ? 0 : Math.round((completedLessons.length / totalLessons) * 100);
+
+  const [platformStats, setPlatformStats] = useState<Record<string, unknown> | null>(null);
+
+  useEffect(() => {
+    void fetchStatsApi().then(setPlatformStats);
+  }, []);
 
   return (
     <main className="flex w-full flex-1 flex-col gap-4 px-4 pt-4 pb-6">
@@ -52,6 +60,18 @@ export default function ProgressPage() {
           />
         </div>
       </section>
+
+      {platformStats && (
+        <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
+          <p className="text-sm font-bold">Статистика платформы</p>
+          <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-[var(--muted)]">
+            <span>Учеников: <b className="text-[var(--fg)] tabular-nums">{(platformStats.total_users as number) ?? 0}</b></span>
+            <span>уроков пройдено: <b className="text-[var(--fg)] tabular-nums">{(platformStats.total_lessons_completed as number) ?? 0}</b></span>
+            <span>Активных сегодня: <b className="text-[var(--fg)] tabular-nums">{(platformStats.active_today as number) ?? 0}</b></span>
+            <span>за неделю: <b className="text-[var(--fg)] tabular-nums">{(platformStats.active_this_week as number) ?? 0}</b></span>
+          </div>
+        </section>
+      )}
 
       <section className="flex flex-col gap-2">
         {ISLANDS.map((island) => {

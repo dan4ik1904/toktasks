@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Crown } from "lucide-react";
 import { leaderboardApi, type LeaderRow } from "@/lib/api";
 import { useProgress } from "@/store/use-progress";
+import { useAuth } from "@/providers/auth-provider";
 import { cn } from "@/lib/utils";
 
 const MEDALS = ["🥇", "🥈", "🥉"];
@@ -11,6 +12,9 @@ const MEDALS = ["🥇", "🥈", "🥉"];
 export default function TopPage() {
   const [rows, setRows] = useState<LeaderRow[] | null>(null);
   const tgId = useProgress((s) => s.tgId) || "demo";
+  const { user } = useAuth();
+  // Also check auth tg_id
+  const myId = user?.tg_id ?? tgId;
 
   useEffect(() => {
     void leaderboardApi().then(setRows);
@@ -32,7 +36,7 @@ export default function TopPage() {
       ) : (
         <ol className="flex flex-col gap-2">
           {rows.map((r, i) => {
-            const mine = r.tg_id === tgId;
+            const mine = r.tg_id === myId;
             return (
               <li
                 key={r.tg_id}

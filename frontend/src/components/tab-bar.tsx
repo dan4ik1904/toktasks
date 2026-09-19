@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 const TABS = [
   { href: "/", label: "Карта", icon: Map },
-  { href: "/explore", label: "Обзор", icon: Compass },
+  { href: "/progress", label: "Прогресс", icon: Compass },
   { href: "/assistant", label: "Ярдәмче", icon: MessageCircleMore, main: true },
   { href: "/top", label: "Топ", icon: Crown },
   { href: "/profile", label: "Профиль", icon: User },
