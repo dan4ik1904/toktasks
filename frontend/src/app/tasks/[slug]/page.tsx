@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import { useState, useCallback, useRef, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Lightbulb } from "lucide-react";
 import { TOPICS } from "@/data/topics";
@@ -23,6 +23,7 @@ export default function TopicPage() {
   const [speakScore, setSpeakScore] = useState<number | null>(null);
   const [speakHint, setSpeakHint] = useState("");
   const [isSpeakChecking, setIsSpeakChecking] = useState(false);
+  const [llmExplanation, setLlmExplanation] = useState<string>("");
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 
   if (!topic) {
@@ -37,13 +38,12 @@ export default function TopicPage() {
   const task = topic.tasks[currentIdx];
   const totalDone = topic.tasks.filter((t) => isTaskCompleted(t.id)).length;
 
-  // Перемешанные слова для заданий типа compose (в разброс)
   const shuffledWords = useMemo(() => {
     if (!task || task.type !== "compose" || !task.words) return [];
     return [...task.words].sort(() => Math.random() - 0.5);
   }, [currentIdx, task]);
 
-  const checkAnswer = useCallback((answer: string) => {
+  const checkAnswer = useCallback(async (answer: string) => {
     if (showResult) return;
     setSelected(answer);
     setShowResult(true);
@@ -54,6 +54,24 @@ export default function TopicPage() {
       setEarned((e) => e + task.reward);
       if (currentIdx === topic.tasks.length - 1) {
         completeTopic(topic.slug);
+      }
+    } else {
+      // Запрашиваем подробный разбор ошибки у ИИ (особенно для аудирования / listen и других)
+      const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      try {
+        const res = await fetch(base + "/api/task/explain-error", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            expected: task.answer,
+            user_input: answer,
+            question: task.question,
+          }),
+        });
+        const data = await res.json();
+        setLlmExplanation(data.explanation_ru || "");
+      } catch {
+        setLlmExplanation(`Вы ввели «${answer}», правильный ответ — «${task.answer}». Проверьте орфографию.`);
       }
     }
   }, [showResult, task, completeTask, completeTopic, currentIdx, topic]);
@@ -68,6 +86,7 @@ export default function TopicPage() {
       setComposeWords([]);
       setSpeakScore(null);
       setSpeakHint("");
+      setLlmExplanation("");
     } else {
       completeTopic(topic.slug);
       router.push("/tasks");
@@ -80,22 +99,19 @@ export default function TopicPage() {
     }
   };
 
-  // Контекстные подсказки Ак Барса в зависимости от типа задания и вопроса
   const getContextualHint = () => {
+    if (llmExplanation) return llmExplanation;
     if (!task) return "Попробуй внимательно прочитать вопрос и выбрать правильный вариант.";
-    if (task.type === "translate") {
-      return `💡 Подсказка: В татарском языке слово «${task.question.replace(/Как будет | по-татарски\?/g, '')}» имеет прямое соответствие в словаре темы. Обрати внимание на написание специфических букв (ә, ө, ү, җ, ң, һ).`;
+    if (task.type === "translate" || task.type === "listen") {
+      return `💡 Подсказка: Обратите внимание на правильное написание татарских звуков (ә, ө, ү, җ, ң, һ) и словарную форму слова «${task.answer}».`;
     }
     if (task.type === "grammar") {
-      return `💡 Подсказка по грамматике: В этом предложении важно правильно подобрать аффикс (окончание) в зависимости от гармонии гласных (закон сингармонизма).`;
+      return `💡 Подсказка по грамматике: В этом задании важно учитывать закон сингармонизма (гармонию гласных) при выборе аффикса.`;
     }
     if (task.type === "compose") {
-      return `💡 Подсказка: В татарском предложении подлежащее обычно стоит в начале, а сказуемое (глагол) — в самом конце.`;
+      return `💡 Подсказка: В татарском предложении подлежащее стоит на первом месте, а сказуемое (глагол) — всегда в самом конце.`;
     }
-    if (task.type === "truefalse") {
-      return `💡 Подсказка: Вспомни правила и факты, изучаемые в этой теме, и оцени утверждение.`;
-    }
-    return `💡 Подсказка: Проверь написание и повтори правила татарской фонетики.`;
+    return `💡 Подсказка: Повторите изученные правила и попробуйте еще раз.`;
   };
 
   const handleSpeakRecord = useCallback(async () => {
@@ -310,11 +326,11 @@ export default function TopicPage() {
               }
             }}
           >
-            🔊 Прослушать
+            🔊 Прослушать аудио
           </button>
           <input
             type="text"
-            placeholder="Напиши что услышал..."
+            placeholder="Напиши то, что услышал по-татарски..."
             value={selected || ""}
             onChange={(e) => setSelected(e.target.value)}
             disabled={showResult}
@@ -419,7 +435,7 @@ export default function TopicPage() {
               onClick={() => setShowHint(true)}
               style={{ marginTop: 8, fontSize: "0.75rem" }}
             >
-              <Lightbulb size={14} /> Подсказка Ак Барса
+              <Lightbulb size={14} /> Подсказка Ак Барса (Разбор ошибки)
             </button>
           )}
           {showHint && (
