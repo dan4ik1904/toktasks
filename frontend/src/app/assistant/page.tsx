@@ -7,12 +7,16 @@ import {
   apiConfigured,
   assistantChatApi,
   extractSay,
+  stopTts,
   sttRecognize,
   toWav16kMono,
   ttsSpeak,
   type AssistantReply,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
+
+/** Голос духа — тот же, что в большинстве заданий (almaz), один на всё приложение. */
+const ASSISTANT_VOICE = "almaz";
 
 interface Message {
   role: "user" | "assistant";
@@ -112,11 +116,7 @@ export default function AssistantPage() {
         /* приватный режим */
       }
       if (!next) {
-        try {
-          window.speechSynthesis?.cancel();
-        } catch {
-          /* нечего останавливать */
-        }
+        stopTts();
         setSpeakingIdx(null);
       }
       return next;
@@ -127,7 +127,7 @@ export default function AssistantPage() {
     if (!voiceOn || !say) return;
     setSpeakingIdx(idx);
     setNeedsTap(false);
-    const played = await ttsSpeak(say);
+    const played = await ttsSpeak(say, ASSISTANT_VOICE);
     setSpeakingIdx((cur) => (cur === idx ? null : cur));
     if (!played) setNeedsTap(true);
   }
@@ -149,10 +149,14 @@ export default function AssistantPage() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, loading]);
 
+  // Ушли со страницы — тишина.
+  useEffect(() => () => stopTts(), []);
+
   async function send(text: string) {
     const question = text.trim();
     if (!question || loading) return;
     interactedRef.current = true;
+    stopTts(); // перебиваем говорящего — как Алису
     setInput("");
     setMessages((m) => [...m, { role: "user", text: question }]);
     setLoading(true);
@@ -178,6 +182,7 @@ export default function AssistantPage() {
       }
       return;
     }
+    stopTts(); // глушим ответ, чтобы слушать вопрос
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const rec = new MediaRecorder(stream);

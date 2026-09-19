@@ -59,10 +59,37 @@ async function fetchTtsBlob(text: string, voice: string): Promise<Blob> {
 function playBlob(url: string): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     const audio = new Audio(url);
-    audio.onended = () => resolve();
-    audio.onerror = () => reject(new Error("audio"));
+    currentAudio = audio;
+    audio.onended = () => {
+      if (currentAudio === audio) currentAudio = null;
+      resolve();
+    };
+    audio.onerror = () => {
+      if (currentAudio === audio) currentAudio = null;
+      reject(new Error("audio"));
+    };
     audio.play().catch(reject);
   });
+}
+
+// Сквозная сессия озвучки: новый speak() глушит предыдущий (barge-in, как у Алисы).
+let speakSession = 0;
+let currentAudio: HTMLAudioElement | null = null;
+
+/** Немедленно остановить любую озвучку (новый вопрос, mute, размонтирование). */
+export function stopTts(): void {
+  speakSession++;
+  try {
+    currentAudio?.pause();
+  } catch {
+    /* уже остановлено */
+  }
+  currentAudio = null;
+  try {
+    window.speechSynthesis?.cancel();
+  } catch {
+    /* нечего останавливать */
+  }
 }
 
 function fallbackSpeak(text: string) {
@@ -77,36 +104,62 @@ function fallbackSpeak(text: string) {
 }
 
 /**
- * Озвучка через Tatsoft TTS (голос духа).
- * Улучшения: чистка текста, чанкинг по предложениям, кэш, фолбэк speechSynthesis.
+ * Озвучка через Tatsoft TTS — тем же голосом, что и задания.
+ * Без задержек: все предложения грузятся параллельно, затем играются
+ * подряд без пауз; новый вызов глушит предыдущий (можно перебивать).
  * Возвращает true, если пел Tatsoft.
  */
 export async function ttsSpeak(text: string, voice = "alsu"): Promise<boolean> {
   const clean = cleanForTts(text);
   if (!clean) return false;
+  const token = ++speakSession;
   try {
-    for (const sentence of splitSentences(clean)) {
-      const key = cacheKey(sentence, voice);
-      let url = ttsCache.get(key);
-      if (!url) {
-        const blob = await fetchTtsBlob(sentence, voice);
-        url = URL.createObjectURL(blob);
-        ttsCache.set(key, url);
-        if (ttsCache.size > TTS_CACHE_LIMIT) {
-          const first = ttsCache.keys().next().value;
-          if (first) {
-            URL.revokeObjectURL(ttsCache.get(first)!);
-            ttsCache.delete(first);
+    currentAudio?.pause();
+  } catch {
+    /* глушим предыдущую реплику */
+  }
+  try {
+    window.speechSynthesis?.cancel();
+  } catch {
+    /* глушим фолбэк */
+  }
+  const sentences = splitSentences(clean);
+  let urls: string[];
+  try {
+    urls = await Promise.all(
+      sentences.map(async (sentence) => {
+        const key = cacheKey(sentence, voice);
+        let url = ttsCache.get(key);
+        if (!url) {
+          const blob = await fetchTtsBlob(sentence, voice);
+          url = URL.createObjectURL(blob);
+          ttsCache.set(key, url);
+          if (ttsCache.size > TTS_CACHE_LIMIT) {
+            const first = ttsCache.keys().next().value;
+            if (first) {
+              URL.revokeObjectURL(ttsCache.get(first)!);
+              ttsCache.delete(first);
+            }
           }
         }
-      }
-      await playBlob(url);
-    }
-    return true;
+        return url;
+      }),
+    );
   } catch {
+    if (token !== speakSession) return true; // перебили — владеет новый вызов
     fallbackSpeak(clean);
     return false;
   }
+  if (token !== speakSession) return true; // перебили, пока грузили
+  for (const url of urls) {
+    if (token !== speakSession) return true; // перебили — выходим молча
+    try {
+      await playBlob(url);
+    } catch {
+      return false;
+    }
+  }
+  return token === speakSession;
 }
 
 /** Греем кэш: озвучить заранее, без воспроизведения. */
