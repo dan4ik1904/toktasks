@@ -20,18 +20,18 @@ FAKE_USERS = [
     {"username": "ruslan_tut", "password": "ruslan258", "display_name": "Руслан"},
 ]
 
-# Lesson IDs from the island data — realistic completion patterns
+# Correct lesson IDs from backend island data
 ALL_LESSONS = [
-    "greetings-1", "greetings-2", "numbers-1", "numbers-2", "numbers-3",
-    "family-1", "family-2", "food-1", "food-2", "food-3",
-    "nature-1", "nature-2", "colors-1", "colors-2",
-    "city-1", "city-2", "city-3", "time-1", "time-2",
-    "clothes-1", "clothes-2", "body-1", "body-2",
-    "school-1", "school-2", "home-1", "home-2", "home-3",
-    "travel-1", "travel-2", "travel-3",
-    "work-1", "work-2",
-    "sports-1", "sports-2",
-    "music-1", "music-2",
+    "salem-1", "salem-2",
+    "ashamlyk-1",
+    "sannar-1", "sannar-2",
+    "gaila-1",
+    "hayvannar-1",
+    "shahar-1",
+    "tabigat-1",
+    "sayahet-1",
+    "tosler-1",
+    "vakyt-1",
 ]
 
 
@@ -46,16 +46,15 @@ def seed():
             continue
         tg_id = result["tg_id"]
 
-        # Random realistic progress: 3-20 completed lessons
-        num_lessons = random.randint(3, 20)
-        chosen = random.sample(ALL_LESSONS, min(num_lessons, len(ALL_LESSONS)))
+        # Random realistic progress: 2-8 completed lessons
+        num_lessons = random.randint(2, min(8, len(ALL_LESSONS)))
+        chosen = random.sample(ALL_LESSONS, num_lessons)
 
         # Stagger creation times over past 2 weeks
         base_time = int(time.time()) - random.randint(86400, 14 * 86400)
 
         for i, lesson_id in enumerate(chosen):
             store.complete_lesson(tg_id, lesson_id)
-            # Manually set created_at to stagger
             created = base_time + i * random.randint(3600, 86400)
             with store._lock, store._conn() as c:
                 c.execute(
