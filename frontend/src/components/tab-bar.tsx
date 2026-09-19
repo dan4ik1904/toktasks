@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, ListTodo, Cat, Gamepad2, User } from "lucide-react";
 
+// Нижняя навигация: плавающая стеклянная пилюля.
+// Центральная кнопка «Кот» приподнята и подсвечена золотом.
 const TABS = [
   { href: "/", label: "Главная", icon: Home },
   { href: "/tasks", label: "Задания", icon: ListTodo },
@@ -21,47 +23,36 @@ export function TabBar() {
   };
 
   return (
-    <nav
-      style={{
-        position: "fixed",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        zIndex: 50,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-around",
-        height: "3.5rem",
-        background: "color-mix(in srgb, var(--surface) 85%, transparent)",
-        backdropFilter: "blur(12px)",
-        borderTop: "1px solid var(--border-soft)",
-      }}
-    >
+    <nav className="tabbar-float" aria-label="Навигация">
       {TABS.map((tab) => {
         const active = isActive(tab.href);
         const Icon = tab.icon;
 
+        // Центральная круглая кнопка кота
         if (tab.center) {
           return (
             <Link
               key={tab.href}
               href={tab.href}
+              aria-label="Мой кот"
               style={{
                 display: "flex",
-                flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
-                marginTop: "-1.5rem",
-                width: "3.5rem",
-                height: "3.5rem",
+                marginTop: "-1.9rem",
+                width: "3.6rem",
+                height: "3.6rem",
                 borderRadius: "50%",
-                background: active ? "var(--gold)" : "var(--accent)",
-                color: "#fff",
+                background: active
+                  ? "linear-gradient(135deg, var(--gold), var(--gold-light))"
+                  : "linear-gradient(135deg, var(--accent-deep), var(--accent))",
+                color: active ? "#1a1405" : "#fff",
+                border: "3px solid var(--bg)",
                 boxShadow: active ? "var(--glow-gold)" : "var(--glow-accent)",
                 transition: "all 0.2s ease",
               }}
             >
-              <Icon size={22} />
+              <Icon size={22} strokeWidth={2.2} />
             </Link>
           );
         }
@@ -76,14 +67,16 @@ export function TabBar() {
               alignItems: "center",
               gap: "0.15rem",
               color: active ? "var(--gold)" : "var(--fg-muted)",
-              fontSize: "0.6rem",
-              fontWeight: active ? 700 : 500,
+              fontSize: "0.62rem",
+              fontWeight: active ? 800 : 600,
               textDecoration: "none",
               transition: "color 0.2s ease",
-              padding: "0.25rem 0.5rem",
+              padding: "0.35rem 0.55rem",
+              borderRadius: "0.8rem",
+              background: active ? "var(--gold-soft)" : "transparent",
             }}
           >
-            <Icon size={18} strokeWidth={active ? 2.5 : 1.8} />
+            <Icon size={19} strokeWidth={active ? 2.5 : 1.8} />
             <span>{tab.label}</span>
           </Link>
         );
