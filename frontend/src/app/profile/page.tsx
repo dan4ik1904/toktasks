@@ -11,7 +11,7 @@ import { haptic } from "@/lib/telegram";
 export default function ProfilePage() {
   const { name, setName, points, streak, completedTasks, achievements, muted, toggleMute } = useStore();
   const { theme, toggleTheme } = useTheme();
-  const { lang, setLang } = useLang();
+  const { lang, setLang, t } = useLang();
   const [partnerOpen, setPartnerOpen] = useState(false);
   const level = Math.min(50, Math.floor(points / 100) + 1);
   const xpInLevel = points % 100;
@@ -26,7 +26,7 @@ export default function ProfilePage() {
   return (
     <div className="page-shell">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1 className="page-title">Профиль / Profile</h1>
+        <h1 className="page-title">{t("profile")}</h1>
         <button className="btn btn-ghost" onClick={() => { haptic("light"); toggleTheme(); }}>
           {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
         </button>
@@ -35,7 +35,7 @@ export default function ProfilePage() {
       {/* Настройки: Язык интерфейса */}
       <div className="card" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.85rem", fontWeight: 700 }}>
-          <Globe size={18} style={{ color: "var(--accent)" }} /> Язык / Language:
+          <Globe size={18} style={{ color: "var(--accent)" }} /> {t("language")}:
         </div>
         <div style={{ display: "flex", gap: 4 }}>
           {LANGUAGES.map((l) => (
@@ -55,14 +55,14 @@ export default function ProfilePage() {
       <div className="card" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.85rem", fontWeight: 700 }}>
           {muted ? <VolumeX size={18} style={{ color: "var(--danger)" }} /> : <Volume2 size={18} style={{ color: "var(--accent)" }} />}
-          Беззвучный режим (озвучка ИИ):
+          {t("mutedMode")}:
         </div>
         <button
           onClick={() => { haptic("light"); toggleMute(); }}
           className={"btn btn-sm " + (muted ? "btn-danger" : "btn-primary")}
           style={{ padding: "0.3rem 0.8rem", fontSize: "0.75rem" }}
         >
-          {muted ? "Вкл (Тишина)" : "Выкл (Звук)"}
+          {muted ? t("on") : t("off")}
         </button>
       </div>
 
@@ -79,7 +79,7 @@ export default function ProfilePage() {
         <div style={{ flex: 1 }}>
           <input value={name} onChange={(e) => setName(e.target.value)}
             style={{ background: "transparent", border: "none", color: "var(--fg)", fontWeight: 700, fontSize: "1rem", width: "100%", padding: 0 }} />
-          <div style={{ fontSize: "0.75rem", color: "var(--fg-muted)" }}>Уровень {level} • Татар тилен өйрәнәбез</div>
+          <div style={{ fontSize: "0.75rem", color: "var(--fg-muted)" }}>{t("level")} {level} • Татар тилен өйрәнәбез</div>
           <div className="progress-track" style={{ marginTop: 6 }}>
             <div className="progress-fill progress-fill-gold" style={{ width: xpInLevel + "%" }} />
           </div>
@@ -91,24 +91,24 @@ export default function ProfilePage() {
         <div className="card" style={{ textAlign: "center", padding: "0.8rem 0.4rem" }}>
           <Zap size={18} style={{ color: "var(--gold)" }} />
           <div style={{ fontWeight: 800, fontSize: "1.1rem", marginTop: 4 }}>{points}</div>
-          <div style={{ fontSize: "0.62rem", color: "var(--fg-muted)" }}>Баллы (XP)</div>
+          <div style={{ fontSize: "0.62rem", color: "var(--fg-muted)" }}>{t("xp")}</div>
         </div>
         <div className="card" style={{ textAlign: "center", padding: "0.8rem 0.4rem" }}>
           <Flame size={18} style={{ color: "#E74C3C" }} />
           <div style={{ fontWeight: 800, fontSize: "1.1rem", marginTop: 4 }}>{streak}</div>
-          <div style={{ fontSize: "0.62rem", color: "var(--fg-muted)" }}>Серия дней</div>
+          <div style={{ fontSize: "0.62rem", color: "var(--fg-muted)" }}>{t("streak")}</div>
         </div>
         <div className="card" style={{ textAlign: "center", padding: "0.8rem 0.4rem" }}>
           <Trophy size={18} style={{ color: "var(--accent)" }} />
           <div style={{ fontWeight: 800, fontSize: "1.1rem", marginTop: 4 }}>{completedTasks.length}</div>
-          <div style={{ fontSize: "0.62rem", color: "var(--fg-muted)" }}>Заданий</div>
+          <div style={{ fontSize: "0.62rem", color: "var(--fg-muted)" }}>{t("tasks")}</div>
         </div>
       </div>
 
       {/* Achievements */}
       {unlockedAchievements.length > 0 && (
         <div>
-          <div style={{ fontWeight: 700, fontSize: "0.9rem", marginBottom: 8 }}>Достижения ({unlockedAchievements.length})</div>
+          <div style={{ fontWeight: 700, fontSize: "0.9rem", marginBottom: 8 }}>{t("achievements")} ({unlockedAchievements.length})</div>
           <div style={{ display: "flex", gap: "0.5rem", overflowX: "auto", paddingBottom: 4 }}>
             {unlockedAchievements.map((a) => (
               <div key={a.id} className="card card-gold" style={{ minWidth: 110, textAlign: "center", padding: "0.6rem" }}>
@@ -124,7 +124,7 @@ export default function ProfilePage() {
       <button className="card card-lift card-gold" onClick={() => { haptic("medium"); setPartnerOpen(true); }} style={{ display: "flex", alignItems: "center", gap: "0.75rem", cursor: "pointer", width: "100%", textAlign: "left" }}>
         <span style={{ fontSize: "1.8rem" }}>🍲</span>
         <span style={{ flex: 1 }}>
-          <span style={{ fontWeight: 800, fontSize: "0.85rem", color: "var(--fg)", display: "block" }}>Тюбетей • скидки за баллы</span>
+          <span style={{ fontWeight: 800, fontSize: "0.85rem", color: "var(--fg)", display: "block" }}>{t("partner")}</span>
           <span style={{ fontSize: "0.7rem", color: "var(--fg-muted)" }}>показать QR на кассе</span>
         </span>
         <QrCode size={20} style={{ color: "var(--gold)" }} />

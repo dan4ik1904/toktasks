@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useStore } from "@/store/use-store";
-import { Sparkles, CheckCircle2, Award } from "lucide-react";
+import { Sparkles, CheckCircle2 } from "lucide-react";
 import { haptic } from "@/lib/telegram";
 
 export type ProficiencyLevel = "beginner" | "elementary" | "intermediate" | "advanced";
@@ -62,7 +62,13 @@ export function PlacementModal() {
   const [score, setScore] = useState(0);
   const [resultLevel, setResultLevel] = useState<ProficiencyLevel | null>(null);
 
-  if (userLevel !== null) return null; // Уже пройден
+  // Перемешиваем варианты ответов случайно для каждого вопроса, чтобы правильный ответ не стоял всегда первым
+  const shuffledOptions = useMemo(() => {
+    const q = PLACEMENT_QUESTIONS[step];
+    return [...q.options].sort(() => Math.random() - 0.5);
+  }, [step]);
+
+  if (userLevel !== null) return null;
 
   const handleAnswer = (opt: string) => {
     haptic("medium");
@@ -71,9 +77,8 @@ export function PlacementModal() {
     setScore(newScore);
 
     if (step < PLACEMENT_QUESTIONS.length - 1) {
-      setStep(step + 1);
+      setStep((s) => s + 1);
     } else {
-      // Определяем категорию уровня по баллам (0-2: beginner, 3-4: elementary, 5-6: intermediate, 7: advanced)
       let lvl: ProficiencyLevel = "beginner";
       if (newScore >= 7) lvl = "advanced";
       else if (newScore >= 5) lvl = "intermediate";
@@ -84,7 +89,6 @@ export function PlacementModal() {
       setUserLevel(lvl);
       addPoints(100);
 
-      // Авто-закрытие и авто-прохождение легких тем в зависимости от уровня
       if (lvl === "advanced") {
         completeTopic("alphabet");
         completeTopic("greetings");
@@ -127,7 +131,7 @@ export function PlacementModal() {
               {PLACEMENT_QUESTIONS[step].q}
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
-              {PLACEMENT_QUESTIONS[step].options.map((opt, i) => (
+              {shuffledOptions.map((opt, i) => (
                 <button
                   key={i}
                   className="btn btn-ghost"

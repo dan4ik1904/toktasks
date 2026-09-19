@@ -16,8 +16,10 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.filters import Command, CommandStart
 from aiogram.types import (
+    BotCommand,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
+    MenuButtonWebApp,
     Message,
     WebAppInfo,
 )
@@ -32,7 +34,7 @@ def webapp_keyboard() -> InlineKeyboardMarkup:
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text="🏝 Открыть Татар.Уку",
+                    text="🐆 Открыть Татар.Уку",
                     web_app=WebAppInfo(url=settings.webapp_url),
                 )
             ]
@@ -44,9 +46,8 @@ def webapp_keyboard() -> InlineKeyboardMarkup:
 async def cmd_start(message: Message) -> None:
     await message.answer(
         "Исәнме! 👋\n\n"
-        "«Татар.Уку» — учим татарский островами тем: "
-        "приветствия, числа, семья, еда и не только.\n\n"
-        "Жми кнопку и начни с острова Сәлам!",
+        "«Татар.Уку» — интерактивное приложение для изучения татарского языка с ИИ-репетитором Ак Барс.\n\n"
+        "Жми кнопку ниже и начни обучение!",
         reply_markup=webapp_keyboard(),
     )
 
@@ -57,8 +58,7 @@ async def cmd_help(message: Message) -> None:
         "Я бот приложения «Татар.Уку».\n\n"
         "/start — открыть мини-приложение\n"
         "/help — это сообщение\n\n"
-        "Внутри: острова тем, карточки слов с озвучкой "
-        "и ИИ-помощник Ярдәмче.",
+        "Внутри: древо уроков Duolingo, мини-игры, ИИ-помощник Ак Барс и скидки в ресторане «Тюбетей».",
         reply_markup=webapp_keyboard(),
     )
 
@@ -66,7 +66,7 @@ async def cmd_help(message: Message) -> None:
 @dp.message(F.text)
 async def fallback(message: Message) -> None:
     await message.answer(
-        "Уроки живут в мини-приложении — открывай и учи! 👇",
+        "Уроки живут в мини-приложении — открывай и учи татарский! 👇",
         reply_markup=webapp_keyboard(),
     )
 
@@ -79,6 +79,22 @@ async def main() -> None:
         token=settings.bot_token,
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )
+    
+    # Устанавливаем меню команд и кнопку Меню (Mini App)
+    try:
+        await bot.set_my_commands([
+            BotCommand(command="start", description="Запустить Татар.Уку"),
+            BotCommand(command="help", description="Справка о боте")
+        ])
+        await bot.set_chat_menu_button(
+            menu_button=MenuButtonWebApp(
+                text="Открыть ТВА",
+                web_app=WebAppInfo(url=settings.webapp_url)
+            )
+        )
+    except Exception as e:
+        logging.warning(f"Could not set bot menu button: {e}")
+
     await dp.start_polling(bot)
 
 

@@ -27,6 +27,10 @@ const DICT: Record<Lang, Record<string, string>> = {
     askAkBars: "Спросить Ак Барса",
     level: "Уровень",
     reset: "Сбросить прогресс",
+    language: "Язык интерфейса",
+    mutedMode: "Беззвучный режим (озвучка ИИ)",
+    on: "Вкл",
+    off: "Выкл",
   },
   en: {
     home: "Home",
@@ -43,6 +47,10 @@ const DICT: Record<Lang, Record<string, string>> = {
     askAkBars: "Ask Ak Bars",
     level: "Level",
     reset: "Reset progress",
+    language: "Interface Language",
+    mutedMode: "Muted Mode (AI Voice)",
+    on: "On",
+    off: "Off",
   },
   tt: {
     home: "Баш бит",
@@ -59,6 +67,10 @@ const DICT: Record<Lang, Record<string, string>> = {
     askAkBars: "Ак Барстан сора",
     level: "Дәрәҗә",
     reset: "Прогрессны чистарту",
+    language: "Тел сайлау",
+    mutedMode: "Тавышсыз режим (ИИ тавышы)",
+    on: "Кабызырга",
+    off: "Сүндерергә",
   },
 };
 
