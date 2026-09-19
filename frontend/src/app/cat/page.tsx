@@ -7,8 +7,7 @@ import { haptic } from "@/lib/telegram";
 
 // ============================================================
 // Ак Барс — официальный ИИ-ассистент проекта TatarLearn.
-// Поддерживает персистентную историю чата, беззвучный режим (Mute)
-// и диалог на любую тему без шаблонных ограничений.
+// Текстовый ввод отвечает строго письменно без автоматического голоса.
 // ============================================================
 
 const QUICK_PROMPTS = [
@@ -43,8 +42,8 @@ function audioBufferToWav(buffer: AudioBuffer): Blob {
   view.setUint16(22, numChannels, true);
   view.setUint32(24, sampleRate, true);
   view.setUint32(28, sampleRate * blockAlign, true);
-  view.setUint16(32, blockAlign, true);
-  view.setUint16(34, bitDepth, true);
+  view.setUint32(32, blockAlign, true);
+  view.setUint32(34, bitDepth, true);
   writeString(36, "data");
   view.setUint32(40, dataLength, true);
 
@@ -116,9 +115,7 @@ export default function AkBarsAssistantPage() {
       const reply = data.reply || data.say || "Рәхмәт!";
       const updatedHistory: ChatMessage[] = [...newHistory, { role: "assistant", text: reply }];
       setChatMessages(updatedHistory);
-      if (!muted) {
-        setTimeout(() => playTts(data.say || reply), 200);
-      }
+      // СТРОГО ПИСЬМЕННО БЕЗ ГОЛОСА НА ТЕКСТОВЫЙ ВВОД (звук только по клику на иконку динамика)
     } catch {
       setChatMessages((h) => [...h, { role: "assistant", text: "Гафу итегез, сервер җавап бирми." }]);
     }
