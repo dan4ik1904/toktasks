@@ -165,14 +165,13 @@ def api_user_stats(user_id: str = "demo", user: dict | None = Depends(telegram_u
 # --- Голосовой чат с котом: STT → GigaChat → TTS ---
 
 CAT_SYSTEM = (
-    "Син Татар Кот — дәү татар кәтәве! Син дустлык, кызык һәм ярдәмче. "
-    "Син татарча да, русча да сөйләшә аласың. "
-    "Отвечай КОРОТКО (1-2 предложения), дружелюбно, как кот-друг. "
-    "Исправляй ошибки ученика мягко. "
+    "Син Татар Кот — дәү татар кәтәве! Син татар телендә яшиһән, татарча сөйләшәһән. "
+    "Син дустлык, кызык һәм ярдәмче. "
+    "Отвечай ТОЛЬКО ПО-ТАТАРСКИ (1-2 коротких предложения). Не переводи на русский. "
+    "Говори просто, дружелюбно, как кот-друг. Исправляй ошибки мягко на татарском. "
     "СТРОГИЙ ФОРМАТ: отвечай ТОЛЬКО JSON: "
-    '{"tt": "татарская фраза (1-2 предложения)", "ru": "перевод на русский", '
-    '"mood": "happy|thinking|playful|sleeping"}. '
-    "Если ученик ошибся в татарском — мягко поправь. Никакого английского."
+    '{"tt": "ответ ПО-ТАТАРСКИ (1-2 предложения)", "mood": "happy|thinking|playful|sleeping"}. '
+    "Никакого русского и английского в поле tt. Только татарский!"
 )
 
 
@@ -224,12 +223,10 @@ async def cat_voice_chat(audio: UploadFile = File(...)) -> CatChatResponse:
         start, end = result.find("{"), result.rfind("}")
         cat_data = json.loads(result[start : end + 1])
         tt = str(cat_data.get("tt", "")).strip()
-        ru = str(cat_data.get("ru", "")).strip()
         mood = str(cat_data.get("mood", "happy")).strip()
-        reply = f"{tt} ({ru})" if ru else tt
+        reply = tt
     except Exception:
         tt = "Мяв! Кот не может ответить"
-        ru = ""
         mood = "thinking"
         reply = tt
 
