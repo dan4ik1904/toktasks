@@ -2,14 +2,17 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, ListTodo, Cat, Gamepad2, User } from "lucide-react";
+import { Home, ListTodo, MessageSquareText, Gamepad2, User } from "lucide-react";
 
+// ============================================================
 // Нижняя навигация: плавающая стеклянная пилюля.
-// Центральная кнопка «Кот» приподнята и подсвечена золотом.
+// Центральная кнопка «Сөйләшү» (Чат с ИИ) приподнята и подсвечена золотом.
+// ============================================================
+
 const TABS = [
   { href: "/", label: "Главная", icon: Home },
   { href: "/tasks", label: "Задания", icon: ListTodo },
-  { href: "/cat", label: "Кот", icon: Cat, center: true },
+  { href: "/cat", label: "Сөйләшү", icon: MessageSquareText, center: true },
   { href: "/games", label: "Игры", icon: Gamepad2 },
   { href: "/profile", label: "Профиль", icon: User },
 ];
@@ -28,13 +31,12 @@ export function TabBar() {
         const active = isActive(tab.href);
         const Icon = tab.icon;
 
-        // Центральная круглая кнопка кота
         if (tab.center) {
           return (
             <Link
               key={tab.href}
               href={tab.href}
-              aria-label="Мой кот"
+              aria-label="Сөйләшү"
               style={{
                 display: "flex",
                 alignItems: "center",

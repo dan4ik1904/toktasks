@@ -1,19 +1,15 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Gamepad2, Trophy, Moon } from "lucide-react";
-import { useStore, satietyMultiplier } from "@/store/use-store";
+import { Gamepad2, Trophy } from "lucide-react";
+import { useStore } from "@/store/use-store";
 import { RunnerGame } from "@/components/games/RunnerGame";
 import { QuizGame } from "@/components/games/QuizGame";
 import { SuzlarGame } from "@/components/games/SuzlarGame";
 import { JomlaGame } from "@/components/games/JomlaGame";
 
 // ============================================================
-// Вкладка «Игры»: 4 мини-игры в едином стиле.
-// Сүзләр и Җөмлә — MVP по ТЗ (с помощником-подсказкой),
-// раннер и викторина — из прошлого релиза.
-// Экономика тамагочи: сытость даёт множитель ×1.5/×1/×0.5,
-// каждая игра отнимает 12% сытности; при 0% кот спит.
+// Вкладка «Игры»: 4 мини-игры для изучения татарского языка.
 // ============================================================
 
 type GameTab = "suzlar" | "jomla" | "runner" | "quiz";
@@ -26,24 +22,17 @@ const TABS: { id: GameTab; label: string; desc: string }[] = [
 ];
 
 export default function GamesPage() {
-  const { addPoints, registerGame, cat } = useStore();
+  const { addPoints, registerGame } = useStore();
   const [tab, setTab] = useState<GameTab>("suzlar");
   const [toast, setToast] = useState<string | null>(null);
 
-  const mult = satietyMultiplier(cat.hunger);
-  const sleeping = cat.hunger <= 0;
-
-  // Начисление из игры: базовые баллы × коэффициент сытности, затем −12% сытности
   const handleDone = useCallback((basePts: number) => {
-    const st = useStore.getState();
-    const m = satietyMultiplier(st.cat.hunger);
-    const pts = Math.round(basePts * m);
-    if (pts > 0) {
-      st.addPoints(pts);
-      setToast(m !== 1 ? `+${pts} баллов (сытость ×${m})!` : `+${pts} баллов начислено!`);
+    if (basePts > 0) {
+      addPoints(basePts);
+      setToast(`+${basePts} баллов начислено!`);
       setTimeout(() => setToast(null), 2500);
     }
-    st.registerGame();
+    registerGame();
   }, [addPoints, registerGame]);
 
   const active = TABS.find((t) => t.id === tab)!;
@@ -56,10 +45,10 @@ export default function GamesPage() {
           <Gamepad2 size={11} /> Уйныйбыз • играем
         </div>
         <h1 className="page-title">Мини-игры</h1>
-        <p className="page-subtitle">Сытность {cat.hunger}% → баллы ×{mult}{sleeping ? " • кот спит, покорми его!" : ""}</p>
+        <p className="page-subtitle">Практика слов и грамматики в игровом формате</p>
       </div>
 
-      {/* Переключатель игр 2×2 */}
+      {/* Переключатель игр */}
       <div className="seg seg-4" role="tablist" aria-label="Выбор игры">
         {TABS.map((t) => (
           <button
@@ -80,19 +69,7 @@ export default function GamesPage() {
         <div style={{ fontSize: "0.75rem", color: "var(--fg-muted)", marginTop: 2 }}>{active.desc}</div>
       </div>
 
-      {/* Кот спит — игры недоступны */}
-      {sleeping ? (
-        <div className="card card-gold animate-pop" style={{ textAlign: "center", padding: "2rem 1rem" }}>
-          <Moon size={36} style={{ color: "var(--gold)" }} />
-          <div style={{ fontWeight: 800, marginTop: 8 }}>Кот спит… 😴</div>
-          <p style={{ fontSize: "0.8rem", color: "var(--fg-muted)", marginTop: 6 }}>
-            Сытность 0% — игры недоступны. Покорми кота в Ашхане!
-          </p>
-          <a href="/cat" className="btn btn-gold" style={{ marginTop: 12 }}>
-            🍲 В Ашхану
-          </a>
-        </div>
-      ) : tab === "suzlar" ? (
+      {tab === "suzlar" ? (
         <SuzlarGame onDone={handleDone} />
       ) : tab === "jomla" ? (
         <JomlaGame onDone={handleDone} />
