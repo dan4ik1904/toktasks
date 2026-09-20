@@ -9,7 +9,7 @@ import { fetchStateApi, saveStateApi } from "@/lib/profile-sync";
 import { setStorageNamespace, migrateStorageNamespace } from "@/games/storage";
 import { getTelegramUser, getInitDataRaw } from "@/lib/telegram";
 
-const LANGS: Lang[] = ["ru", "en", "tt"];
+const LANGS: Lang[] = ["ru"];
 
 interface Identity {
   tgId: string;

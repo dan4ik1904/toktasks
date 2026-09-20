@@ -18,10 +18,10 @@ export const LEVEL_TO_DIFFICULTY: Record<ProficiencyLevel, 1 | 2 | 3 | 4> = {
 };
 
 export const LEVEL_NAMES: Record<ProficiencyLevel, { title: string; titleTt: string; desc: string }> = {
-  beginner: { title: "Начинающий", titleTt: "Бала / Әлифба", desc: "Алфавит, правила чтения и базовые приветствия" },
-  elementary: { title: "Базовый", titleTt: "Үсмер / Гади сүзләр", desc: "Простые фразы, обиходные слова и числа" },
-  intermediate: { title: "Средний", titleTt: "Олы / Сөйләшү", desc: "Грамматика, времена глаголов и диалоги" },
-  advanced: { title: "Продвинутый", titleTt: "Мастер / Ирекле", desc: "Сложные конструкции, идиомы и свободная речь" },
+  beginner: { title: "Начинающий", titleTt: "Башлангыч / Әлифба", desc: "Алфавит, правила чтения и базовые приветствия" },
+  elementary: { title: "Базовый", titleTt: "Дәвам / Гади сүзләр", desc: "Простые фразы, обиходные слова и числа" },
+  intermediate: { title: "Средний", titleTt: "Урта / Сөйләшү", desc: "Грамматика, времена глаголов и диалоги" },
+  advanced: { title: "Продвинутый", titleTt: "Югары / Ирекле сөйләм", desc: "Сложные конструкции, идиомы и свободная речь" },
 };
 
 interface PlacementQuestion {

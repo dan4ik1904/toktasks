@@ -6,8 +6,8 @@ import { useStore } from "@/store/use-store";
 import { useTheme } from "@/providers/theme-provider";
 import { CatSprite } from "@/components/cat-sprite";
 import { useTelegram } from "@/providers/telegram-provider";
-import { useLang, type Lang } from "@/store/use-lang";
-import { Zap, Flame, Trophy, Sun, Moon, QrCode, Globe, VolumeX, Volume2, ShoppingBag, ChevronRight } from "lucide-react";
+import { useLang } from "@/store/use-lang";
+import { Zap, Flame, Trophy, Sun, Moon, QrCode, VolumeX, Volume2, ShoppingBag, ChevronRight } from "lucide-react";
 import { PartnerModal } from "@/components/partner-modal";
 import { haptic } from "@/lib/telegram";
 
@@ -21,17 +21,11 @@ export default function ProfilePage() {
     ? [tgUser.first_name, tgUser.last_name].filter(Boolean).join(" ") || name
     : name;
   const { theme, toggleTheme } = useTheme();
-  const { lang, setLang, t } = useLang();
+  const { t } = useLang();
   const [partnerOpen, setPartnerOpen] = useState(false);
   const level = Math.min(50, Math.floor(points / 100) + 1);
   const xpInLevel = points % 100;
   const unlockedAchievements = achievements.filter((a) => a.unlocked);
-
-  const LANGUAGES: { id: Lang; label: string }[] = [
-    { id: "ru", label: "Русский" },
-    { id: "en", label: "English" },
-    { id: "tt", label: "Татарча" },
-  ];
 
   return (
     <div className="page-shell">
@@ -55,25 +49,6 @@ export default function ProfilePage() {
           <ChevronRight size={18} style={{ color: "var(--gold)" }} />
         </div>
       </Link>
-
-      {/* Настройки: Язык интерфейса */}
-      <div className="card" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.85rem", fontWeight: 700 }}>
-          <Globe size={18} style={{ color: "var(--accent)" }} /> {t("language")}:
-        </div>
-        <div style={{ display: "flex", gap: 4 }}>
-          {LANGUAGES.map((l) => (
-            <button
-              key={l.id}
-              onClick={() => { haptic("light"); setLang(l.id); }}
-              className={"btn btn-sm " + (lang === l.id ? "btn-primary" : "btn-ghost")}
-              style={{ padding: "0.3rem 0.6rem", fontSize: "0.75rem" }}
-            >
-              {l.label}
-            </button>
-          ))}
-        </div>
-      </div>
 
       {/* Настройки: Беззвучный режим (озвучка ИИ) */}
       <div className="card" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -114,7 +89,7 @@ export default function ProfilePage() {
             <input value={name} onChange={(e) => setName(e.target.value)}
               style={{ background: "transparent", border: "none", color: "var(--fg)", fontWeight: 700, fontSize: "1rem", width: "100%", padding: 0 }} />
           )}
-          <div style={{ fontSize: "0.75rem", color: "var(--fg-muted)" }}>{t("level")} {level} • Татар тилен өйрәнәбез</div>
+          <div style={{ fontSize: "0.75rem", color: "var(--fg-muted)" }}>{t("level")} {level} • Татар телен өйрәнәбез</div>
           <div className="progress-track" style={{ marginTop: 6 }}>
             <div className="progress-fill progress-fill-gold" style={{ width: xpInLevel + "%" }} />
           </div>
