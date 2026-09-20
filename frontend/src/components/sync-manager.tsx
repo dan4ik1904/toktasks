@@ -66,6 +66,7 @@ function buildSnapshot(): Record<string, unknown> {
     userLevel: s.userLevel,
     muted: s.muted,
     kbdHintShown: s.kbdHintShown,
+    epoch: s.epoch,
     chatMessages: s.chatMessages.slice(-40),
     lang: useLang.getState().lang,
   };
@@ -98,7 +99,7 @@ function wipeLegacySharedKeys(): void {
  * два аккаунта на одном устройстве больше не видят данные друг друга.
  */
 export function SyncManager() {
-  const { user, initDataRaw } = useTelegram();
+  const { user, initDataRaw, resolved } = useTelegram();
   const bootedFor = useRef<string | null>(null);
   const booting = useRef(false);
   const identity = useRef<Identity>({ tgId: "demo", firstName: "", username: "", initData: undefined });
@@ -131,8 +132,10 @@ export function SyncManager() {
     };
   }, []);
 
-  // Загрузка профиля при появлении TG identity
+  // Загрузка профиля при появлении TG identity.
+  // Ждём resolved, чтобы в Telegram не грузить сначала чужой "demo"-профиль.
   useEffect(() => {
+    if (!resolved) return;
     const id = resolveIdentity(user, initDataRaw);
     if (bootedFor.current === id.tgId || booting.current) return;
     booting.current = true;
@@ -161,6 +164,12 @@ export function SyncManager() {
       wipeLegacySharedKeys();
 
       const snap = await fetchStateApi(id.tgId, id.initData);
+      // Глобальный сброс: сервер новее нашей эпохи — обнуляемся и начинаем чисто
+      const serverEpoch = snap?.reset_epoch ?? 0;
+      if (serverEpoch > useStore.getState().epoch) {
+        useStore.getState().resetProfileData();
+        useStore.getState().setEpoch(serverEpoch);
+      }
       if (snap && snap.exists && hasServerData(snap.data)) {
         useStore.getState().applyServerSnapshot(snap.data);
         const lang = snap.data.lang;
@@ -179,7 +188,7 @@ export function SyncManager() {
       useStore.getState().setProfileReady(true);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, initDataRaw]);
+  }, [resolved, user?.id, initDataRaw]);
 
   return null;
 }

@@ -14,6 +14,8 @@ export interface TelegramContextValue {
   initDataRaw: string | undefined;
   isInTelegram: boolean;
   isDark: boolean;
+  /** Детект окружения завершён (иначе user/raw ещё не "нет", а "неизвестно"). */
+  resolved: boolean;
 }
 
 const TelegramContext = createContext<TelegramContextValue>({
@@ -21,6 +23,7 @@ const TelegramContext = createContext<TelegramContextValue>({
   initDataRaw: undefined,
   isInTelegram: false,
   isDark: true,
+  resolved: false,
 });
 
 function detectTelegram(): { inTelegram: boolean; user?: User; raw?: string } {
@@ -47,6 +50,7 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
     initDataRaw: undefined,
     isInTelegram: false,
     isDark: true,
+    resolved: false,
   });
 
   useEffect(() => {
@@ -56,6 +60,7 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
       initDataRaw: raw,
       isInTelegram: inTelegram,
       isDark: inTelegram ? true : window.matchMedia("(prefers-color-scheme: dark)").matches,
+      resolved: true,
     });
   }, []);
 

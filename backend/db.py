@@ -53,6 +53,10 @@ def init_db() -> None:
               tg_id TEXT PRIMARY KEY, data TEXT DEFAULT '{}',
               updated_at INTEGER DEFAULT 0)"""
         )
+        c.execute(
+            """CREATE TABLE IF NOT EXISTS meta(
+              key TEXT PRIMARY KEY, value TEXT DEFAULT '')"""
+        )
 
 
 def _today() -> str:
@@ -210,6 +214,19 @@ def stats() -> dict:
         "average_xp": round(avg_xp),
         "top_xp": top_xp,
     }
+
+
+def get_reset_epoch() -> int:
+    """Эпоха глобального сброса: клиенты со старыми данными обязаны обнулиться."""
+    init_db()
+    with _conn() as c:
+        r = c.execute("SELECT value FROM meta WHERE key='reset_epoch'").fetchone()
+        if r is None:
+            return 0
+        try:
+            return int(r["value"] or 0)
+        except Exception:
+            return 0
 
 
 def load_state(tg_id: str) -> dict | None:

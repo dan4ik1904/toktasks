@@ -36,6 +36,8 @@ interface AppState {
   muted: boolean;
   /** Показана ли подсказка про татарскую клавиатуру (только один раз). */
   kbdHintShown: boolean;
+  /** Эпоха глобального сброса: видели ли мы последний wipe (high-water mark). */
+  epoch: number;
   chatMessages: ChatMessage[];
 
   setTgId: (id: string) => void;
@@ -53,6 +55,7 @@ interface AppState {
   unlockAchievement: (id: string) => void;
   toggleMute: () => void;
   setKbdHintShown: () => void;
+  setEpoch: (v: number) => void;
   setChatMessages: (msgs: ChatMessage[] | ((prev: ChatMessage[]) => ChatMessage[])) => void;
   /** Полное применение снапшота из БД (per-TG-аккаунт). Не трогает tgId/name. */
   applyServerSnapshot: (data: Record<string, unknown>) => void;
@@ -112,6 +115,7 @@ export const useStore = create<AppState>()(
       userLevel: null,
       muted: false,
       kbdHintShown: false,
+      epoch: 0,
       chatMessages: [
         {
           role: "assistant",
@@ -124,6 +128,7 @@ export const useStore = create<AppState>()(
       setUserLevel: (userLevel) => set({ userLevel }),
       toggleMute: () => set((s) => ({ muted: !s.muted })),
       setKbdHintShown: () => set({ kbdHintShown: true }),
+      setEpoch: (v) => set((s) => ({ epoch: Math.max(s.epoch, v) })),
       setChatMessages: (msgs) => set((s) => ({
         chatMessages: typeof msgs === "function" ? msgs(s.chatMessages) : msgs,
       })),
@@ -252,6 +257,7 @@ export const useStore = create<AppState>()(
           userLevel: lvl,
           muted: typeof data.muted === "boolean" ? data.muted : s.muted,
           kbdHintShown: data.kbdHintShown === true ? true : s.kbdHintShown,
+          epoch: typeof data.epoch === "number" && data.epoch > s.epoch ? Math.floor(data.epoch) : s.epoch,
           chatMessages,
         };
       }),

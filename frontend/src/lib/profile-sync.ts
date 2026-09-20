@@ -6,6 +6,7 @@ export interface ServerSnapshot {
   exists: boolean;
   updated_at: number;
   data: Record<string, unknown>;
+  reset_epoch?: number;
 }
 
 function headers(initData?: string): Record<string, string> {

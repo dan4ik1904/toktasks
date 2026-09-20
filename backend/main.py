@@ -129,10 +129,11 @@ class StateSaveRequest(BaseModel):
 @app.get("/api/state")
 def api_get_state(user_id: str = "demo", user: dict | None = Depends(telegram_user)) -> dict:
     uid = _uid(user, user_id)
+    epoch = store.get_reset_epoch()
     snap = store.load_state(uid)
     if snap is None:
-        return {"exists": False, "updated_at": 0, "data": {}}
-    return {"exists": True, "updated_at": snap["updated_at"], "data": snap["data"]}
+        return {"exists": False, "updated_at": 0, "data": {}, "reset_epoch": epoch}
+    return {"exists": True, "updated_at": snap["updated_at"], "data": snap["data"], "reset_epoch": epoch}
 
 
 @app.post("/api/state")
