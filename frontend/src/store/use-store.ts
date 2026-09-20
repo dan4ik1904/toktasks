@@ -40,7 +40,7 @@ interface AppState {
 
   setTgId: (id: string) => void;
   setName: (name: string) => void;
-  setUserLevel: (lvl: ProficiencyLevel) => void;
+  setUserLevel: (lvl: ProficiencyLevel | null) => void;
   addPoints: (n: number) => void;
   spendPoints: (n: number) => boolean;
   touchToday: () => void;
@@ -292,6 +292,19 @@ export const useStore = create<AppState>()(
         userLevel: null,
       }),
     }),
-    { name: "tatarcha-store" },
+    {
+      name: "tatarcha-store",
+      // КРИТИЧНО: localStorage общий на устройство. Если в сохранённых
+      // данных чужой tgId — игнорируем их, иначе новый аккаунт увидит
+      // старый прогресс (и пропущенное входное тестирование).
+      merge: (persisted, current) => {
+        const p = persisted as Partial<AppState> | undefined;
+        const c = current as AppState;
+        if (p && typeof p.tgId === "string" && p.tgId && p.tgId !== c.tgId) {
+          return c;
+        }
+        return { ...c, ...(p ?? {}) };
+      },
+    },
   ),
 );

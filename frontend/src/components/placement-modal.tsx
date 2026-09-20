@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useStore } from "@/store/use-store";
 import { TOPICS } from "@/data/topics";
 import { Sparkles, CheckCircle2 } from "lucide-react";
@@ -78,6 +78,15 @@ export function PlacementModal() {
   const [step, setStep] = useState(0);
   const [score, setScore] = useState(0);
   const [resultLevel, setResultLevel] = useState<ProficiencyLevel | null>(null);
+
+  // Перепрохождение теста из профиля: начинаем с чистого листа
+  useEffect(() => {
+    if (userLevel === null) {
+      setStep(0);
+      setScore(0);
+      setResultLevel(null);
+    }
+  }, [userLevel]);
 
   const current = PLACEMENT_QUESTIONS[Math.min(step, PLACEMENT_QUESTIONS.length - 1)];
 

@@ -17,6 +17,28 @@ export function setStorageNamespace(ns: string): void {
   NS = ns || "";
 }
 
+/**
+ * Одноразовый переезд рекордов со старых общих ключей под per-аккаунт
+ * префикс. Общие ключи после этого удаляются, чтобы чужой рекорд
+ * не подхватился другим аккаунтом на том же устройстве.
+ */
+export function migrateStorageNamespace(ns: string): void {
+  if (typeof window === "undefined" || !ns) return;
+  try {
+    const ls = window.localStorage;
+    for (const key of Object.values(KEYS)) {
+      const namespacedKey = `${ns}:${key}`;
+      const shared = ls.getItem(key);
+      if (shared !== null && ls.getItem(namespacedKey) === null) {
+        ls.setItem(namespacedKey, shared);
+      }
+      ls.removeItem(key);
+    }
+  } catch {
+    // приватный режим — молча игнорируем
+  }
+}
+
 function namespaced(key: string): string {
   return NS ? `${NS}:${key}` : key;
 }

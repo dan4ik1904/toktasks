@@ -1,13 +1,53 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import type { User } from "@telegram-apps/types";
 import { useTelegram } from "@/providers/telegram-provider";
 import { useStore } from "@/store/use-store";
 import { useLang, type Lang } from "@/store/use-lang";
 import { fetchStateApi, saveStateApi } from "@/lib/profile-sync";
-import { setStorageNamespace } from "@/games/storage";
+import { setStorageNamespace, migrateStorageNamespace } from "@/games/storage";
+import { getTelegramUser, getInitDataRaw } from "@/lib/telegram";
 
 const LANGS: Lang[] = ["ru", "en", "tt"];
+
+interface Identity {
+  tgId: string;
+  firstName: string;
+  username: string;
+  initData?: string;
+}
+
+/** Достаём пользователя из сырого initData (fallback, если объект user недоступен). */
+function parseUserFromRaw(raw?: string): User | undefined {
+  try {
+    if (!raw) return undefined;
+    const u = new URLSearchParams(raw).get("user");
+    if (!u) return undefined;
+    const parsed = JSON.parse(u) as Partial<User>;
+    if (parsed && typeof parsed.id === "number") return parsed as User;
+  } catch {
+    /* ignore */
+  }
+  return undefined;
+}
+
+function resolveIdentity(
+  ctxUser: User | undefined,
+  ctxRaw: string | undefined,
+): Identity {
+  const raw = ctxRaw ?? getInitDataRaw();
+  const user = ctxUser ?? getTelegramUser() ?? parseUserFromRaw(raw);
+  if (user && typeof user.id === "number") {
+    return {
+      tgId: String(user.id),
+      firstName: user.first_name ?? "",
+      username: user.username ?? "",
+      initData: raw,
+    };
+  }
+  return { tgId: "demo", firstName: "", username: "", initData: raw };
+}
 
 function buildSnapshot(): Record<string, unknown> {
   const s = useStore.getState();
@@ -41,6 +81,17 @@ function hasServerData(data: Record<string, unknown>): boolean {
   return false;
 }
 
+function wipeLegacySharedKeys(): void {
+  try {
+    // Старые общие ключи (до per-аккаунт изоляции): удаляем, чтобы чужой
+    // прогресс никогда не подхватился ни одним аккаунтом.
+    window.localStorage.removeItem("tatarcha-store");
+    window.localStorage.removeItem("tatarcha-lang");
+  } catch {
+    /* ignore */
+  }
+}
+
 /**
  * Привязка профиля к TG-аккаунту и синхронизация с БД.
  * Каждый TG id получает свои ключи localStorage и свою строку в БД —
@@ -50,7 +101,7 @@ export function SyncManager() {
   const { user, initDataRaw } = useTelegram();
   const bootedFor = useRef<string | null>(null);
   const booting = useRef(false);
-  const identity = useRef({ tgId: "demo", firstName: "", username: "", initData: undefined as string | undefined });
+  const identity = useRef<Identity>({ tgId: "demo", firstName: "", username: "", initData: undefined });
 
   // Дебаунс сохранений при любых изменениях сторов
   useEffect(() => {
@@ -82,30 +133,34 @@ export function SyncManager() {
 
   // Загрузка профиля при появлении TG identity
   useEffect(() => {
-    const tgId = user?.id ? String(user.id) : "demo";
-    const firstName = user?.first_name ?? "";
-    const username = user?.username ?? "";
-    if (bootedFor.current === tgId || booting.current) return;
+    const id = resolveIdentity(user, initDataRaw);
+    if (bootedFor.current === id.tgId || booting.current) return;
     booting.current = true;
-    identity.current = { tgId, firstName, username, initData: initDataRaw };
+    identity.current = id;
 
     (async () => {
       const store = useStore.getState();
-      store.setTgId(tgId);
-      store.setName(firstName || (username ? `@${username}` : "") || store.name || "Ученик");
+      // Сразу гасим готовность: пока идёт привязка, модалка и экраны
+      // не должны показывать состояние прошлого аккаунта.
+      store.setProfileReady(false);
+      store.setTgId(id.tgId);
+      store.setName(id.firstName || (id.username ? `@${id.username}` : "") || store.name || "Ученик");
       // Чистим память от данных прошлого аккаунта, затем подхватываем per-user кэши
       store.resetProfileData();
-      useStore.persist.setOptions({ name: `tatarcha-store:${tgId}` });
-      useLang.persist.setOptions({ name: `tatarcha-lang:${tgId}` });
+      useStore.persist.setOptions({ name: `tatarcha-store:${id.tgId}` });
+      useLang.persist.setOptions({ name: `tatarcha-lang:${id.tgId}` });
+      useLang.setState({ lang: "ru" });
       try {
         await useStore.persist.rehydrate();
         await useLang.persist.rehydrate();
       } catch {
         /* повреждённый кэш — стартуем с дефолта */
       }
-      setStorageNamespace(`tg${tgId}`);
+      setStorageNamespace(`tg${id.tgId}`);
+      migrateStorageNamespace(`tg${id.tgId}`);
+      wipeLegacySharedKeys();
 
-      const snap = await fetchStateApi(tgId, initDataRaw);
+      const snap = await fetchStateApi(id.tgId, id.initData);
       if (snap && snap.exists && hasServerData(snap.data)) {
         useStore.getState().applyServerSnapshot(snap.data);
         const lang = snap.data.lang;
@@ -114,16 +169,17 @@ export function SyncManager() {
         }
       } else {
         // Новый аккаунт (или пусто в БД) — публикуем локальное состояние
-        await saveStateApi(tgId, buildSnapshot(), firstName, username, initDataRaw);
+        await saveStateApi(id.tgId, buildSnapshot(), id.firstName, id.username, id.initData);
       }
-      bootedFor.current = tgId;
+      bootedFor.current = id.tgId;
       booting.current = false;
       useStore.getState().setProfileReady(true);
     })().catch(() => {
       booting.current = false;
       useStore.getState().setProfileReady(true);
     });
-  }, [user?.id, initDataRaw]); // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, initDataRaw]);
 
   return null;
 }

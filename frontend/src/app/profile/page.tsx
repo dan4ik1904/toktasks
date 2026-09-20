@@ -11,7 +11,7 @@ import { PartnerModal } from "@/components/partner-modal";
 import { haptic } from "@/lib/telegram";
 
 export default function ProfilePage() {
-  const { name, setName, points, streak, completedTasks, achievements, muted, toggleMute, tgId } = useStore();
+  const { name, setName, points, streak, completedTasks, achievements, muted, toggleMute, tgId, userLevel, setUserLevel } = useStore();
   const { user: tgUser, isInTelegram } = useTelegram();
   const tgDisplayName = tgUser
     ? [tgUser.first_name, tgUser.last_name].filter(Boolean).join(" ") || name
@@ -138,6 +138,22 @@ export default function ProfilePage() {
           <div style={{ fontSize: "0.62rem", color: "var(--fg-muted)" }}>{t("tasks")}</div>
         </div>
       </div>
+
+      {/* Перепройти входной тест (смена уровня) */}
+      {userLevel && (
+        <button
+          className="btn btn-ghost btn-sm"
+          onClick={() => {
+            haptic("medium");
+            if (confirm("Перепройти входное тестирование? Уровень будет определён заново.")) {
+              setUserLevel(null);
+            }
+          }}
+          style={{ width: "100%" }}
+        >
+          🔄 Перепройти входной тест
+        </button>
+      )}
 
       {/* Achievements */}
       {unlockedAchievements.length > 0 && (
