@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useStore } from "@/store/use-store";
-import { ShoppingBag, Tag, QrCode, Sparkles, Check } from "lucide-react";
+import { ShoppingBag, Tag, QrCode, Check } from "lucide-react";
 import { PartnerModal } from "@/components/partner-modal";
 import { haptic } from "@/lib/telegram";
 
@@ -37,13 +37,10 @@ export default function MarketPage() {
     <div className="page-shell">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <div className="badge badge-gold" style={{ marginBottom: 4 }}>
-            <Sparkles size={11} /> Маркет наград
-          </div>
           <h1 className="page-title">Скидки и мерч</h1>
-          <p className="page-subtitle">Обменивай заработанные XP на купоны, акции и подарки</p>
+          <p className="page-subtitle">Обмен XP на купоны и подарки</p>
         </div>
-        <div className="badge badge-gold">💰 {points} XP</div>
+        <div className="badge badge-gold">💰 {points}</div>
       </div>
 
       {/* Быстрая кнопка Тюбетей QR */}

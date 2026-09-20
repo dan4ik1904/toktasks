@@ -34,6 +34,8 @@ interface AppState {
   gamesPlayed: number;
   userLevel: ProficiencyLevel | null;
   muted: boolean;
+  /** Показана ли подсказка про татарскую клавиатуру (только один раз). */
+  kbdHintShown: boolean;
   chatMessages: ChatMessage[];
 
   setTgId: (id: string) => void;
@@ -50,6 +52,7 @@ interface AppState {
   registerGame: () => void;
   unlockAchievement: (id: string) => void;
   toggleMute: () => void;
+  setKbdHintShown: () => void;
   setChatMessages: (msgs: ChatMessage[] | ((prev: ChatMessage[]) => ChatMessage[])) => void;
   /** Полное применение снапшота из БД (per-TG-аккаунт). Не трогает tgId/name. */
   applyServerSnapshot: (data: Record<string, unknown>) => void;
@@ -108,6 +111,7 @@ export const useStore = create<AppState>()(
       gamesPlayed: 0,
       userLevel: null,
       muted: false,
+      kbdHintShown: false,
       chatMessages: [
         {
           role: "assistant",
@@ -119,6 +123,7 @@ export const useStore = create<AppState>()(
       setName: (name) => set({ name }),
       setUserLevel: (userLevel) => set({ userLevel }),
       toggleMute: () => set((s) => ({ muted: !s.muted })),
+      setKbdHintShown: () => set({ kbdHintShown: true }),
       setChatMessages: (msgs) => set((s) => ({
         chatMessages: typeof msgs === "function" ? msgs(s.chatMessages) : msgs,
       })),
@@ -246,6 +251,7 @@ export const useStore = create<AppState>()(
           gamesPlayed: num(data.gamesPlayed, s.gamesPlayed),
           userLevel: lvl,
           muted: typeof data.muted === "boolean" ? data.muted : s.muted,
+          kbdHintShown: data.kbdHintShown === true ? true : s.kbdHintShown,
           chatMessages,
         };
       }),
@@ -263,6 +269,7 @@ export const useStore = create<AppState>()(
         gamesPlayed: 0,
         userLevel: null,
         muted: false,
+        kbdHintShown: false,
         chatMessages: [GREETING],
         tgId: s.tgId,
         name: s.name,

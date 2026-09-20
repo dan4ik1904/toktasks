@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Map, Gamepad2, Flame, Star, Zap, ChevronRight, Sparkles, QrCode, BookOpen } from "lucide-react";
+import { Map, Gamepad2, Flame, Star, Zap, ChevronRight, QrCode, BookOpen } from "lucide-react";
 import { useStore } from "@/store/use-store";
 import { useLang } from "@/store/use-lang";
 import { PartnerModal } from "@/components/partner-modal";
@@ -23,16 +23,11 @@ export default function HomePage() {
       {/* Шапка */}
       <div className="flex items-center justify-between">
         <div>
-          <div className="badge badge-gold" style={{ marginBottom: 6 }}>
-            <Sparkles size={11} /> {t("platformTitle")}
-          </div>
           <h1 className="page-title">TATARCHA</h1>
-          <p className="page-subtitle">{t("welcome").replace("Салам", `Салам, ${name}`)}</p>
+          <p className="page-subtitle">Салам, {name}! Бүген нәрсә өйрәнәбез?</p>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="badge badge-accent">
-            <Zap size={12} /> {points} XP
-          </div>
+        <div className="badge badge-accent">
+          <Zap size={12} /> {points} XP
         </div>
       </div>
 

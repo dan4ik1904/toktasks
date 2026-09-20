@@ -6,7 +6,7 @@ import { useStore } from "@/store/use-store";
 import { useLang } from "@/store/use-lang";
 import { LEVEL_NAMES, LEVEL_TO_DIFFICULTY, LEVEL_ORDER } from "@/components/placement-modal";
 import { haptic } from "@/lib/telegram";
-import { Sparkles, Lock } from "lucide-react";
+import { Lock } from "lucide-react";
 
 const LEVEL_BADGE: Record<string, string> = {
   beginner: "A1",
@@ -16,7 +16,7 @@ const LEVEL_BADGE: Record<string, string> = {
 };
 
 export default function TasksPage() {
-  const { completedTasks, completedTopics, points, userLevel } = useStore();
+  const { completedTasks, completedTopics, userLevel } = useStore();
   const { t } = useLang();
 
   const userDiff = userLevel ? LEVEL_TO_DIFFICULTY[userLevel] : 1;
@@ -32,15 +32,9 @@ export default function TasksPage() {
 
   return (
     <div className="page-shell" style={{ alignItems: "center" }}>
-      <div style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div>
-          <div className="badge badge-accent" style={{ marginBottom: 6 }}>
-            <Sparkles size={11} /> {t("learning")} • Татар теле
-          </div>
-          <h1 className="page-title">{t("lessonsTitle")}</h1>
-          <p className="page-subtitle">{t("lessonsSubtitle")}</p>
-        </div>
-        <div className="badge badge-gold">💰 {points}</div>
+      <div style={{ width: "100%" }}>
+        <h1 className="page-title">{t("lessonsTitle")}</h1>
+        <p className="page-subtitle">{t("lessonsSubtitle")}</p>
       </div>
 
       {userLevel && (

@@ -25,6 +25,7 @@ function buildSnapshot(): Record<string, unknown> {
     gamesPlayed: s.gamesPlayed,
     userLevel: s.userLevel,
     muted: s.muted,
+    kbdHintShown: s.kbdHintShown,
     chatMessages: s.chatMessages.slice(-40),
     lang: useLang.getState().lang,
   };

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Gamepad2, Trophy } from "lucide-react";
+import { Trophy } from "lucide-react";
 import { useStore } from "@/store/use-store";
 import { RunnerGame } from "@/components/games/RunnerGame";
 import { EchpochmakGame } from "@/components/games/EchpochmakGame";
@@ -31,16 +31,11 @@ export default function GamesPage() {
     registerGame();
   }, [addPoints, registerGame]);
 
-  const active = TABS.find((t) => t.id === tab)!;
-
   return (
     <div className="page-shell">
       <div>
-        <div className="badge badge-red" style={{ marginBottom: 6 }}>
-          <Gamepad2 size={11} /> Аркады • Игры
-        </div>
         <h1 className="page-title">Мини-игры</h1>
-        <p className="page-subtitle">Аркадные мини-игры (награды сбалансированы и уменьшены)</p>
+        <p className="page-subtitle">Практика слов в игровом формате</p>
       </div>
 
       <div className="seg" role="tablist" aria-label="Выбор игры">
@@ -56,11 +51,6 @@ export default function GamesPage() {
             {t.label}
           </button>
         ))}
-      </div>
-
-      <div className="card card-red">
-        <div style={{ fontWeight: 800, fontSize: "0.9rem" }}>{active.label}</div>
-        <div style={{ fontSize: "0.75rem", color: "var(--fg-muted)", marginTop: 2 }}>{active.desc}</div>
       </div>
 
       {tab === "runner" ? (
