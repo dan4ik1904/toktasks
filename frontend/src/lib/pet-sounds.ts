@@ -4,8 +4,15 @@ const audioCache = new Map<string, HTMLAudioElement>();
 /** Активные синтезированные ноды — чтобы гасить их перед новым звуком. */
 const activeNodes = new Set<AudioScheduledSourceNode>();
 
+/** Таймер автостопа длинных записей (еда/мурчание/храп обрезаются). */
+let stopTimer: ReturnType<typeof setTimeout> | null = null;
+
 /** Остановить ВСЕ звуки кота (mp3 и синтез). Один канал — без наложений. */
 export function stopAllSounds(): void {
+  if (stopTimer) {
+    clearTimeout(stopTimer);
+    stopTimer = null;
+  }
   try {
     audioCache.forEach((a) => {
       try { a.pause(); } catch { /* ignore */ }
@@ -17,8 +24,11 @@ export function stopAllSounds(): void {
   activeNodes.clear();
 }
 
-/** Проиграть mp3-файл из /public/sounds (предыдущий звук гасится). */
-function playFile(name: string, vol = 1): void {
+/**
+ * Проиграть mp3-файл из /public/sounds (предыдущий звук гасится).
+ * maxSeconds — обрезать длинную запись (еда/мурчание 3с, храп 5с).
+ */
+function playFile(name: string, vol = 1, maxSeconds?: number): void {
   try {
     if (typeof window === "undefined") return;
     stopAllSounds();
@@ -32,25 +42,18 @@ function playFile(name: string, vol = 1): void {
     a.volume = vol;
     a.currentTime = 0;
     void a.play().catch(() => {});
+    if (maxSeconds) {
+      const el = a;
+      stopTimer = setTimeout(() => {
+        try { el.pause(); } catch { /* ignore */ }
+      }, maxSeconds * 1000);
+    }
   } catch { /* ignore */ }
 }
 
-/** Зациклить храп на время сна. Возвращает стоп-функцию. */
+/** Храп на время сна — 5 секунд. */
 export function startSnoreLoop(): void {
-  try {
-    if (typeof window === "undefined") return;
-    stopAllSounds();
-    let a = audioCache.get("snore.mp3");
-    if (!a) {
-      a = new Audio("/sounds/snore.mp3");
-      a.preload = "auto";
-      audioCache.set("snore.mp3", a);
-    }
-    a.loop = true;
-    a.volume = 0.85;
-    a.currentTime = 0;
-    void a.play().catch(() => {});
-  } catch { /* ignore */ }
+  playFile("snore.mp3", 0.85, 5);
 }
 
 export function stopSnoreLoop(): void {
@@ -119,14 +122,14 @@ export function playMeow(): void {
   } catch { /* ignore */ }
 }
 
-/** Настоящее мурчание кошки (mp3). */
+/** Настоящее мурчание кошки (mp3, 3 секунды). */
 export function playPurr(): void {
-  playFile("purr.mp3", 0.9);
+  playFile("purr.mp3", 0.9, 3);
 }
 
-/** Настоящее хрустящее чавканье (mp3). */
+/** Настоящее хрустящее чавканье (mp3, 3 секунды). */
 export function playMunch(): void {
-  playFile("munch.mp3", 0.9);
+  playFile("munch.mp3", 0.9, 3);
 }
 
 /** Покупка: нежное арпеджио музыкальной шкатулки. */
