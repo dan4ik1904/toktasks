@@ -14,13 +14,13 @@ import { haptic } from "@/lib/telegram";
 
 export default function HomePage() {
   const { points, streak, dailyTasks, completedTasks, achievements } = useStore();
-  const { petHunger, petHappiness, petEnergy, petOutfit, feedPet, petPet, muted } = useStore();
+  const { petHunger, petHappiness, petEnergy, petOutfit, petSleeping, feedPet, petPet, muted } = useStore();
   const { t } = useLang();
   const [partnerOpen, setPartnerOpen] = useState(false);
   const recentAchievements = achievements.filter((a) => a.unlocked).slice(-3);
 
   const mood: CatMood =
-    petEnergy < 20 ? "sleepy" : petHunger < 30 ? "hungry" : petHappiness > 82 ? "happy" : "normal";
+    petSleeping || petEnergy < 20 ? "sleepy" : petHunger < 30 ? "hungry" : petHappiness > 82 ? "happy" : "normal";
   const moodText =
     mood === "sleepy" ? "Хочет спать... 😴" : mood === "hungry" ? "Просит кушать... 🥺" : mood === "happy" ? "Счастлив! 😻" : "Ждёт тебя 🐾";
 

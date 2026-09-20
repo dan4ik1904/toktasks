@@ -73,6 +73,8 @@ function buildSnapshot(): Record<string, unknown> {
     petOutfit: s.petOutfit,
     ownedOutfits: s.ownedOutfits,
     lastTickTime: s.lastTickTime,
+    petSleeping: s.petSleeping,
+    sleepUntil: s.sleepUntil,
     chatMessages: s.chatMessages.slice(-40),
     lang: useLang.getState().lang,
   };
@@ -174,6 +176,8 @@ export function SyncManager() {
       setStorageNamespace(`tg${id.tgId}`);
       migrateStorageNamespace(`tg${id.tgId}`);
       wipeLegacySharedKeys();
+      // Досчитываем питомца за время отсутствия (пробуждение по таймеру и т.п.)
+      useStore.getState().tickPet();
 
       const snap = await fetchStateApi(id.tgId, id.initData);
       // Глобальный сброс: сервер новее нашей эпохи — обнуляемся и начинаем чисто

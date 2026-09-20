@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Sparkles, Utensils, Heart, Moon, Shirt, MessageSquare, Volume2, Mic, Send, VolumeX, User, Sparkle } from "lucide-react";
 import { useStore, type ChatMessage } from "@/store/use-store";
 import { assistantChatApi, ttsSpeak } from "@/lib/api";
 import { haptic } from "@/lib/telegram";
 import { CatSprite, type CatMood } from "@/components/cat-sprite";
-import { playMeow, playPurr, playMunch, playCoin, playSnore, playPop } from "@/lib/pet-sounds";
+import { playMeow, playPurr, playMunch, playCoin, playPop, startSnoreLoop, stopSnoreLoop } from "@/lib/pet-sounds";
 
 const OUTFITS = [
   { id: "none", name: "Обычный", icon: "🐈", cost: 0 },
@@ -31,9 +31,11 @@ export default function TamagotchiCatPage() {
     petEnergy,
     petOutfit,
     ownedOutfits,
+    petSleeping,
     feedPet,
     petPet,
     sleepPet,
+    wakePet,
     buyOutfit,
     equipOutfit,
     chatMessages,
@@ -80,7 +82,14 @@ export default function TamagotchiCatPage() {
   };
 
   const mood: CatMood =
-    petEnergy < 20 ? "sleepy" : petHunger < 30 ? "hungry" : petHappiness > 82 ? "happy" : "normal";
+    petSleeping || petEnergy < 20 ? "sleepy" : petHunger < 30 ? "hungry" : petHappiness > 82 ? "happy" : "normal";
+
+  // Пока кот спит — храп играет по кругу. Один канал: всё остальное заглушено.
+  useEffect(() => {
+    if (petSleeping && !muted) startSnoreLoop();
+    else stopSnoreLoop();
+    return () => stopSnoreLoop();
+  }, [petSleeping, muted]);
 
   const handleFeed = (type: "echpochmak" | "chakchak" | "milk") => {
     haptic("medium");
@@ -108,17 +117,30 @@ export default function TamagotchiCatPage() {
     showToast("Иптәш довольно мурчит! 🥰 (+счастье)");
   };
 
-  const handleSleep = () => {
+  const handleSleepToggle = () => {
     haptic("medium");
-    sleepPet();
-    sound(playSnore);
-    showToast("Иптәш сладко поспал и полон сил! 💤");
+    const was = useStore.getState().petSleeping;
+    if (was) {
+      wakePet();
+      sound(playMeow);
+      showToast("Иптәш проснулся бодрым! ☀️ (+энергия)");
+    } else {
+      sleepPet();
+      showToast("Тсс... Иптәш засыпает 😴");
+    }
   };
 
   const handleSpriteTap = () => {
+    if (petSleeping) {
+      // Тап по спящему — нежно будим
+      wakePet();
+      sound(playMeow);
+      spawnHearts(2);
+      showToast("Иптәш проснулся! ☀️");
+      return;
+    }
     if (petEnergy < 20) {
-      sound(playSnore);
-      showToast("Тсс... Иптәш спит 😴");
+      showToast("Иптәш слишком устал... Уложите его спать 😴");
       return;
     }
     sound(playMeow);
@@ -303,13 +325,15 @@ export default function TamagotchiCatPage() {
             </div>
             <div style={{ fontWeight: 800, fontSize: "1.1rem", marginTop: 8 }}>Иптәш</div>
             <div style={{ fontSize: "0.75rem", color: "var(--fg-muted)" }}>
-              {mood === "sleepy"
-                ? "Хочет спать... 😴"
-                : mood === "hungry"
-                  ? "Просит кушать... 🥺"
-                  : mood === "happy"
-                    ? "Счастлив и мурчит! 😻"
-                    : "Нажми на меня — погладь! 🐾"}
+              {petSleeping
+                ? "Сладко спит... 💤 (тап — разбудить)"
+                : mood === "sleepy"
+                  ? "Хочет спать... 😴"
+                  : mood === "hungry"
+                    ? "Просит кушать... 🥺"
+                    : mood === "happy"
+                      ? "Счастлив и мурчит! 😻"
+                      : "Нажми на меня — погладь! 🐾"}
             </div>
 
             {/* Шкалы параметров */}
@@ -344,14 +368,14 @@ export default function TamagotchiCatPage() {
               <div style={{ fontWeight: 800, fontSize: "0.85rem", display: "flex", alignItems: "center", gap: 6 }}>
                 <Utensils size={16} style={{ color: "var(--gold)" }} /> Покормить
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-                <button className="btn btn-sm btn-gold" onClick={() => handleFeed("echpochmak")} style={{ justifyContent: "space-between" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem", opacity: petSleeping ? 0.45 : 1 }}>
+                <button className="btn btn-sm btn-gold" disabled={petSleeping} onClick={() => handleFeed("echpochmak")} style={{ justifyContent: "space-between" }}>
                   <span>🥟 Өчпочмак</span> <span style={{ fontSize: "0.7rem", opacity: 0.8 }}>25 XP</span>
                 </button>
-                <button className="btn btn-sm btn-ghost" onClick={() => handleFeed("chakchak")} style={{ justifyContent: "space-between" }}>
+                <button className="btn btn-sm btn-ghost" disabled={petSleeping} onClick={() => handleFeed("chakchak")} style={{ justifyContent: "space-between" }}>
                   <span>🍯 Чак-чак</span> <span style={{ fontSize: "0.7rem", opacity: 0.8 }}>15 XP</span>
                 </button>
-                <button className="btn btn-sm btn-ghost" onClick={() => handleFeed("milk")} style={{ justifyContent: "space-between" }}>
+                <button className="btn btn-sm btn-ghost" disabled={petSleeping} onClick={() => handleFeed("milk")} style={{ justifyContent: "space-between" }}>
                   <span>🥛 Молочко</span> <span style={{ fontSize: "0.7rem", opacity: 0.8 }}>10 XP</span>
                 </button>
               </div>
@@ -362,11 +386,11 @@ export default function TamagotchiCatPage() {
                 <Sparkles size={16} style={{ color: "var(--accent)" }} /> Забота
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", flex: 1, justifyContent: "center" }}>
-                <button className="btn btn-primary" onClick={handlePet} style={{ width: "100%" }}>
+                <button className="btn btn-primary" disabled={petSleeping} onClick={handlePet} style={{ width: "100%" }}>
                   <Heart size={16} /> Погладить
                 </button>
-                <button className="btn btn-ghost" onClick={handleSleep} style={{ width: "100%" }}>
-                  <Moon size={16} /> Уложить спать
+                <button className={petSleeping ? "btn btn-gold" : "btn btn-ghost"} onClick={handleSleepToggle} style={{ width: "100%" }}>
+                  <Moon size={16} /> {petSleeping ? "Разбудить" : "Уложить спать"}
                 </button>
               </div>
             </div>

@@ -46,6 +46,8 @@ interface AppState {
   petOutfit: string; // "none" | "tubetey" | "scarf" | "glasses" | "crown"
   ownedOutfits: string[];
   lastTickTime: number;
+  petSleeping: boolean;
+  sleepUntil: number;
 
   setTgId: (id: string) => void;
   setName: (name: string) => void;
@@ -67,6 +69,7 @@ interface AppState {
   feedPet: (foodType: "echpochmak" | "chakchak" | "milk") => boolean;
   petPet: () => void;
   sleepPet: () => void;
+  wakePet: () => void;
   buyOutfit: (outfitId: string, cost: number) => boolean;
   equipOutfit: (outfitId: string) => void;
   tickPet: () => void;
@@ -135,6 +138,8 @@ export const useStore = create<AppState>()(
       petOutfit: "none",
       ownedOutfits: ["none"],
       lastTickTime: Date.now(),
+      petSleeping: false,
+      sleepUntil: 0,
       chatMessages: [
         {
           role: "assistant",
@@ -161,6 +166,9 @@ export const useStore = create<AppState>()(
         set({
           petHunger: Math.min(100, s.petHunger + add),
           petHappiness: Math.min(100, s.petHappiness + 10),
+          // Любая забота будит кота
+          petSleeping: false,
+          sleepUntil: 0,
         });
         return true;
       },
@@ -168,12 +176,34 @@ export const useStore = create<AppState>()(
       petPet: () => set((s) => ({
         petHappiness: Math.min(100, s.petHappiness + 12),
         petEnergy: Math.max(0, s.petEnergy - 2),
+        petSleeping: false,
+        sleepUntil: 0,
       })),
 
-      sleepPet: () => set((s) => ({
+      // Уложить спать на 30 секунд: кот спит с анимацией и храпом,
+      // просыпается бодрым. Повторный вызов — разбудить.
+      sleepPet: () => set((s) => {
+        if (s.petSleeping) {
+          return {
+            petSleeping: false,
+            sleepUntil: 0,
+            petEnergy: 100,
+            petHappiness: Math.min(100, s.petHappiness + 5),
+          };
+        }
+        return {
+          petSleeping: true,
+          sleepUntil: Date.now() + 30000,
+          petHunger: Math.max(10, s.petHunger - 10),
+        };
+      }),
+
+      wakePet: () => set((s) => (s.petSleeping ? {
+        petSleeping: false,
+        sleepUntil: 0,
         petEnergy: 100,
-        petHunger: Math.max(10, s.petHunger - 15),
-      })),
+        petHappiness: Math.min(100, s.petHappiness + 5),
+      } : {})),
 
       buyOutfit: (outfitId, cost) => {
         const s = get();
@@ -196,6 +226,17 @@ export const useStore = create<AppState>()(
 
       tickPet: () => set((s) => {
         const now = Date.now();
+        // Пробуждение по таймеру — даже если минутный тик ещё не настал
+        if (s.petSleeping && now >= s.sleepUntil) {
+          return {
+            petSleeping: false,
+            sleepUntil: 0,
+            petEnergy: 100,
+            petHappiness: Math.min(100, s.petHappiness + 5),
+            lastTickTime: now,
+          };
+        }
+        if (s.petSleeping) return {}; // во сне параметры не тают
         const diffSec = (now - (s.lastTickTime || now)) / 1000;
         if (diffSec < 60) return {}; // тик раз в минуту
         const drop = Math.floor(diffSec / 60);
@@ -340,6 +381,8 @@ export const useStore = create<AppState>()(
           petEnergy: num(data.petEnergy, s.petEnergy),
           petOutfit: typeof data.petOutfit === "string" ? data.petOutfit : s.petOutfit,
           ownedOutfits: strArray(data.ownedOutfits, 50).length ? strArray(data.ownedOutfits, 50) : s.ownedOutfits,
+          petSleeping: data.petSleeping === true ? true : s.petSleeping,
+          sleepUntil: num(data.sleepUntil, s.sleepUntil),
           chatMessages,
         };
       }),
@@ -364,6 +407,8 @@ export const useStore = create<AppState>()(
         petOutfit: "none",
         ownedOutfits: ["none"],
         lastTickTime: Date.now(),
+        petSleeping: false,
+        sleepUntil: 0,
         chatMessages: [GREETING],
         tgId: s.tgId,
         name: s.name,

@@ -13,9 +13,9 @@ import { haptic } from "@/lib/telegram";
 
 export default function ProfilePage() {
   const { name, setName, points, streak, completedTasks, achievements, muted, toggleMute, tgId, userLevel, setUserLevel } = useStore();
-  const { petHunger, petHappiness, petEnergy, petOutfit } = useStore();
-  const petMood = petEnergy < 20 ? "sleepy" : petHunger < 30 ? "hungry" : petHappiness > 82 ? "happy" : "normal";
-  const petMoodText = petMood === "sleepy" ? "спит 😴" : petMood === "hungry" ? "голодный 🥺" : petMood === "happy" ? "счастлив 😻" : "ждёт тебя 🐾";
+  const { petHunger, petHappiness, petEnergy, petOutfit, petSleeping } = useStore();
+  const petMood = petSleeping || petEnergy < 20 ? "sleepy" : petHunger < 30 ? "hungry" : petHappiness > 82 ? "happy" : "normal";
+  const petMoodText = petSleeping ? "сладко спит 💤" : petMood === "sleepy" ? "хочет спать 😴" : petMood === "hungry" ? "голодный 🥺" : petMood === "happy" ? "счастлив 😻" : "ждёт тебя 🐾";
   const { user: tgUser, isInTelegram } = useTelegram();
   const tgDisplayName = tgUser
     ? [tgUser.first_name, tgUser.last_name].filter(Boolean).join(" ") || name

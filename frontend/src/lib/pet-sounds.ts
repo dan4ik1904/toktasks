@@ -1,20 +1,65 @@
 /** Звуки Иптәша: настоящие mp3 (мурчание, чавканье, храп) + синтез для остального. */
 
 const audioCache = new Map<string, HTMLAudioElement>();
+/** Активные синтезированные ноды — чтобы гасить их перед новым звуком. */
+const activeNodes = new Set<AudioScheduledSourceNode>();
 
-/** Проиграть mp3-файл из /public/sounds. */
+/** Остановить ВСЕ звуки кота (mp3 и синтез). Один канал — без наложений. */
+export function stopAllSounds(): void {
+  try {
+    audioCache.forEach((a) => {
+      try { a.pause(); } catch { /* ignore */ }
+    });
+  } catch { /* ignore */ }
+  activeNodes.forEach((n) => {
+    try { n.stop(); } catch { /* ignore */ }
+  });
+  activeNodes.clear();
+}
+
+/** Проиграть mp3-файл из /public/sounds (предыдущий звук гасится). */
 function playFile(name: string, vol = 1): void {
   try {
     if (typeof window === "undefined") return;
+    stopAllSounds();
     let a = audioCache.get(name);
     if (!a) {
       a = new Audio(`/sounds/${name}`);
       a.preload = "auto";
       audioCache.set(name, a);
     }
+    a.loop = false;
     a.volume = vol;
     a.currentTime = 0;
     void a.play().catch(() => {});
+  } catch { /* ignore */ }
+}
+
+/** Зациклить храп на время сна. Возвращает стоп-функцию. */
+export function startSnoreLoop(): void {
+  try {
+    if (typeof window === "undefined") return;
+    stopAllSounds();
+    let a = audioCache.get("snore.mp3");
+    if (!a) {
+      a = new Audio("/sounds/snore.mp3");
+      a.preload = "auto";
+      audioCache.set("snore.mp3", a);
+    }
+    a.loop = true;
+    a.volume = 0.85;
+    a.currentTime = 0;
+    void a.play().catch(() => {});
+  } catch { /* ignore */ }
+}
+
+export function stopSnoreLoop(): void {
+  try {
+    const a = audioCache.get("snore.mp3");
+    if (a) {
+      a.loop = false;
+      try { a.pause(); } catch { /* ignore */ }
+    }
   } catch { /* ignore */ }
 }
 
@@ -56,12 +101,15 @@ function tone(
   gain.gain.exponentialRampToValueAtTime(opts.vol ?? 0.12, t0 + 0.04);
   gain.gain.exponentialRampToValueAtTime(0.0001, t0 + opts.dur);
   osc.connect(gain).connect(c.destination);
+  activeNodes.add(osc);
+  osc.onended = () => activeNodes.delete(osc);
   osc.start(t0);
   osc.stop(t0 + opts.dur + 0.05);
 }
 
 /** Нежное котёночье «мяу» — высокое и короткое. */
 export function playMeow(): void {
+  stopAllSounds();
   const c = ac();
   if (!c) return;
   try {
@@ -83,6 +131,7 @@ export function playMunch(): void {
 
 /** Покупка: нежное арпеджио музыкальной шкатулки. */
 export function playCoin(): void {
+  stopAllSounds();
   const c = ac();
   if (!c) return;
   try {
@@ -99,6 +148,7 @@ export function playSnore(): void {
 
 /** Милый «пиу» для тапов. */
 export function playPop(): void {
+  stopAllSounds();
   const c = ac();
   if (!c) return;
   try {
