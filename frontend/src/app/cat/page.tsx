@@ -5,6 +5,8 @@ import { Sparkles, Utensils, Heart, Moon, Shirt, MessageSquare, Volume2, Mic, Se
 import { useStore, type ChatMessage } from "@/store/use-store";
 import { assistantChatApi, ttsSpeak } from "@/lib/api";
 import { haptic } from "@/lib/telegram";
+import { CatSprite, type CatMood } from "@/components/cat-sprite";
+import { playMeow, playPurr, playMunch, playCoin, playSnore, playPop } from "@/lib/pet-sounds";
 
 const OUTFITS = [
   { id: "none", name: "Обычный", icon: "🐈", cost: 0 },
@@ -42,6 +44,11 @@ export default function TamagotchiCatPage() {
 
   const [tab, setTab] = useState<"pet" | "wardrobe" | "chat">("pet");
   const [feedToast, setFeedToast] = useState<string | null>(null);
+  const [action, setAction] = useState<"idle" | "eating" | "petted">("idle");
+  const [hearts, setHearts] = useState<{ id: number; x: number }[]>([]);
+  const [lastFood, setLastFood] = useState<string | null>(null);
+  const heartId = useRef(0);
+  const actionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Чат-состояние
   const [input, setInput] = useState("");
@@ -54,13 +61,40 @@ export default function TamagotchiCatPage() {
     setTimeout(() => setFeedToast(null), 2500);
   };
 
+  const sound = (fn: () => void) => {
+    if (!muted) fn();
+  };
+
+  const flashAction = (next: "eating" | "petted", ms: number) => {
+    setAction(next);
+    if (actionTimer.current) clearTimeout(actionTimer.current);
+    actionTimer.current = setTimeout(() => setAction("idle"), ms);
+  };
+
+  const spawnHearts = (n = 3) => {
+    const fresh = Array.from({ length: n }, () => ({ id: ++heartId.current, x: 20 + Math.random() * 60 }));
+    setHearts((h) => [...h.slice(-8), ...fresh]);
+    setTimeout(() => {
+      setHearts((h) => h.filter((x) => !fresh.some((f) => f.id === x.id)));
+    }, 1200);
+  };
+
+  const mood: CatMood =
+    petEnergy < 20 ? "sleepy" : petHunger < 30 ? "hungry" : petHappiness > 82 ? "happy" : "normal";
+
   const handleFeed = (type: "echpochmak" | "chakchak" | "milk") => {
     haptic("medium");
     const ok = feedPet(type);
     if (ok) {
+      const foods = { echpochmak: "🥟", chakchak: "🍯", milk: "🥛" };
       const names = { echpochmak: "өчпочмак 🥟", chakchak: "чак-чак 🍯", milk: "молочко 🥛" };
+      setLastFood(foods[type]);
+      flashAction("eating", 1600);
+      sound(playMunch);
+      setTimeout(() => setLastFood(null), 1100);
       showToast(`Иптәш с удовольствием съел ${names[type]}! (+сытость)`);
     } else {
+      sound(playPop);
       showToast("Не хватает XP для покупки еды! Проходи уроки.");
     }
   };
@@ -68,24 +102,45 @@ export default function TamagotchiCatPage() {
   const handlePet = () => {
     haptic("light");
     petPet();
+    flashAction("petted", 800);
+    spawnHearts(3);
+    sound(playPurr);
     showToast("Иптәш довольно мурчит! 🥰 (+счастье)");
   };
 
   const handleSleep = () => {
     haptic("medium");
     sleepPet();
+    sound(playSnore);
     showToast("Иптәш сладко поспал и полон сил! 💤");
+  };
+
+  const handleSpriteTap = () => {
+    if (petEnergy < 20) {
+      sound(playSnore);
+      showToast("Тсс... Иптәш спит 😴");
+      return;
+    }
+    sound(playMeow);
+    handlePet();
   };
 
   const handleBuyOrEquip = (id: string, cost: number) => {
     haptic("medium");
     if (ownedOutfits.includes(id)) {
       equipOutfit(id);
+      sound(playPop);
       showToast("Наряд надет!");
     } else {
       const ok = buyOutfit(id, cost);
-      if (ok) showToast("Новый наряд куплен и надет! 🎉");
-      else showToast("Не хватает XP для покупки!");
+      if (ok) {
+        sound(playCoin);
+        spawnHearts(2);
+        showToast("Новый наряд куплен и надет! 🎉");
+      } else {
+        sound(playPop);
+        showToast("Не хватает XP для покупки!");
+      }
     }
   };
 
@@ -172,14 +227,6 @@ export default function TamagotchiCatPage() {
     }
   }, [isRecording, muted]);
 
-  // Эмодзи кота в зависимости от настроения и одежды
-  const getCatEmoji = () => {
-    if (petEnergy < 20) return "😴";
-    if (petHunger < 30) return "😿";
-    if (petHappiness > 85) return "😻";
-    return "🐆";
-  };
-
   const getOutfitBadge = () => {
     if (petOutfit === "tubetey") return "🟢 Тюбетейка";
     if (petOutfit === "scarf") return "🧣 Шарфик";
@@ -233,21 +280,36 @@ export default function TamagotchiCatPage() {
               </div>
             )}
             <div
-              className="animate-slide-up"
               style={{
-                fontSize: "5.5rem",
                 display: "inline-block",
                 cursor: "pointer",
                 filter: "drop-shadow(0 10px 20px rgba(0,0,0,0.3))",
-                transition: "transform 0.15s ease",
+                position: "relative",
               }}
-              onClick={handlePet}
+              onClick={handleSpriteTap}
+              title="Погладить Иптәша"
             >
-              {getCatEmoji()}
+              <CatSprite mood={mood} action={action} outfit={petOutfit} size={170} />
+              {hearts.map((h) => (
+                <span key={h.id} className="float-heart" style={{ left: `${h.x}%`, top: "30%" }}>
+                  💛
+                </span>
+              ))}
+              {lastFood && (
+                <span className="food-fly" style={{ position: "absolute", left: "42%", top: "38%", fontSize: "2rem" }}>
+                  {lastFood}
+                </span>
+              )}
             </div>
             <div style={{ fontWeight: 800, fontSize: "1.1rem", marginTop: 8 }}>Иптәш (Iptäsh)</div>
             <div style={{ fontSize: "0.75rem", color: "var(--fg-muted)" }}>
-              {petEnergy < 20 ? "Хочет спать..." : petHunger < 30 ? "Просит кушать..." : "Счастлив и готов учить татарский!"}
+              {mood === "sleepy"
+                ? "Хочет спать... 😴"
+                : mood === "hungry"
+                  ? "Просит кушать... 🥺"
+                  : mood === "happy"
+                    ? "Счастлив и мурчит! 😻"
+                    : "Нажми на меня — погладь! 🐾"}
             </div>
 
             {/* Шкалы параметров */}

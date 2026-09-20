@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useStore } from "@/store/use-store";
 import { useTheme } from "@/providers/theme-provider";
+import { CatSprite } from "@/components/cat-sprite";
 import { useTelegram } from "@/providers/telegram-provider";
 import { useLang, type Lang } from "@/store/use-lang";
 import { Zap, Flame, Trophy, Sun, Moon, QrCode, Globe, VolumeX, Volume2, ShoppingBag, ChevronRight } from "lucide-react";
@@ -12,6 +13,9 @@ import { haptic } from "@/lib/telegram";
 
 export default function ProfilePage() {
   const { name, setName, points, streak, completedTasks, achievements, muted, toggleMute, tgId, userLevel, setUserLevel } = useStore();
+  const { petHunger, petHappiness, petEnergy, petOutfit } = useStore();
+  const petMood = petEnergy < 20 ? "sleepy" : petHunger < 30 ? "hungry" : petHappiness > 82 ? "happy" : "normal";
+  const petMoodText = petMood === "sleepy" ? "спит 😴" : petMood === "hungry" ? "голодный 🥺" : petMood === "happy" ? "счастлив 😻" : "ждёт тебя 🐾";
   const { user: tgUser, isInTelegram } = useTelegram();
   const tgDisplayName = tgUser
     ? [tgUser.first_name, tgUser.last_name].filter(Boolean).join(" ") || name
@@ -119,6 +123,30 @@ export default function ProfilePage() {
           )}
         </div>
       </div>
+
+      {/* Мой Иптәш */}
+      <Link href="/cat" onClick={() => haptic("light")} style={{ textDecoration: "none" }}>
+        <div className="card card-lift card-accent" style={{ display: "flex", alignItems: "center", gap: "0.85rem", cursor: "pointer" }}>
+          <div style={{ flexShrink: 0 }}>
+            <CatSprite mood={petMood} action="idle" outfit={petOutfit} size={64} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 800, fontSize: "0.9rem", color: "var(--fg)" }}>Мой Иптәш • {petMoodText}</div>
+            <div style={{ display: "flex", gap: 5, marginTop: 6 }}>
+              <div className="progress-track" style={{ flex: 1, height: 4 }}>
+                <div className="progress-fill" style={{ width: `${petHunger}%`, background: petHunger > 50 ? "var(--success)" : "var(--danger)" }} />
+              </div>
+              <div className="progress-track" style={{ flex: 1, height: 4 }}>
+                <div className="progress-fill progress-fill-gold" style={{ width: `${petHappiness}%` }} />
+              </div>
+              <div className="progress-track" style={{ flex: 1, height: 4 }}>
+                <div className="progress-fill" style={{ width: `${petEnergy}%` }} />
+              </div>
+            </div>
+          </div>
+          <ChevronRight size={18} style={{ color: "var(--accent)", flexShrink: 0 }} />
+        </div>
+      </Link>
 
       {/* Stats */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.6rem" }}>

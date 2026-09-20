@@ -8,13 +8,33 @@ import { useLang } from "@/store/use-lang";
 import { PartnerModal } from "@/components/partner-modal";
 import { AssistantFab } from "@/components/assistant-fab";
 import { PlacementModal } from "@/components/placement-modal";
+import { CatSprite, type CatMood } from "@/components/cat-sprite";
+import { playMunch, playPurr } from "@/lib/pet-sounds";
 import { haptic } from "@/lib/telegram";
 
 export default function HomePage() {
   const { name, points, streak, dailyTasks, completedTasks, achievements } = useStore();
+  const { petHunger, petHappiness, petEnergy, petOutfit, feedPet, petPet, muted } = useStore();
   const { t } = useLang();
   const [partnerOpen, setPartnerOpen] = useState(false);
   const recentAchievements = achievements.filter((a) => a.unlocked).slice(-3);
+
+  const mood: CatMood =
+    petEnergy < 20 ? "sleepy" : petHunger < 30 ? "hungry" : petHappiness > 82 ? "happy" : "normal";
+  const moodText =
+    mood === "sleepy" ? "Хочет спать... 😴" : mood === "hungry" ? "Просит кушать... 🥺" : mood === "happy" ? "Счастлив! 😻" : "Ждёт тебя 🐾";
+
+  const quickPet = () => {
+    haptic("light");
+    petPet();
+    if (!muted) playPurr();
+  };
+  const quickFeed = () => {
+    haptic("medium");
+    if (feedPet("echpochmak") || feedPet("chakchak") || feedPet("milk")) {
+      if (!muted) playMunch();
+    }
+  };
 
   return (
     <div className="page-shell">
@@ -31,26 +51,41 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Hero: Иптәш ИИ-ассистент */}
-      <Link href="/cat" onClick={() => haptic("light")} style={{ textDecoration: "none" }}>
-        <div className="hero-card animate-slide-up" style={{ display: "flex", alignItems: "center", gap: "1rem", padding: "1.25rem" }}>
-          <div style={{ width: 60, height: 60, borderRadius: "50%", background: "var(--gold-soft)", border: "2px solid var(--gold)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "2rem", flexShrink: 0 }}>
-            🐆
+      {/* Hero: Иптәш — сердце приложения */}
+      <div className="hero-card animate-slide-up" style={{ display: "flex", alignItems: "center", gap: "1rem", padding: "1.1rem 1.25rem" }}>
+        <Link href="/cat" onClick={() => haptic("light")} style={{ textDecoration: "none", flexShrink: 0 }} aria-label="Открыть Иптәша">
+          <CatSprite mood={mood} action="idle" outfit={petOutfit} size={104} />
+        </Link>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ fontWeight: 800, fontSize: "1rem", color: "var(--fg)" }}>Иптәш</span>
+            <span className="badge badge-gold">питомец</span>
           </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <span style={{ fontWeight: 800, fontSize: "1rem", color: "var(--fg)" }}>{t("aiTutorCardTitle")}</span>
-              <span className="badge badge-gold">AI</span>
+          <div style={{ fontSize: "0.78rem", color: "var(--fg-muted)", marginTop: 2 }}>{moodText}</div>
+          <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+            <div className="progress-track" title="Сытость" style={{ flex: 1, height: 5 }}>
+              <div className="progress-fill" style={{ width: `${petHunger}%`, background: petHunger > 50 ? "var(--success)" : "var(--danger)" }} />
             </div>
-            <div style={{ fontSize: "0.8rem", color: "var(--fg-muted)", marginTop: 3 }}>
-              {t("aiTutorCardDesc")}
+            <div className="progress-track" title="Счастье" style={{ flex: 1, height: 5 }}>
+              <div className="progress-fill progress-fill-gold" style={{ width: `${petHappiness}%` }} />
             </div>
-            <div style={{ fontSize: "0.75rem", color: "var(--gold)", fontWeight: 700, marginTop: 6, display: "flex", alignItems: "center", gap: 4 }}>
-              {t("startChat")} <ChevronRight size={14} />
+            <div className="progress-track" title="Энергия" style={{ flex: 1, height: 5 }}>
+              <div className="progress-fill" style={{ width: `${petEnergy}%` }} />
             </div>
+          </div>
+          <div style={{ display: "flex", gap: "0.4rem", marginTop: 8 }}>
+            <button className="btn btn-sm btn-gold" onClick={quickFeed} style={{ flex: 1, fontSize: "0.72rem" }}>
+              🥟 Покормить
+            </button>
+            <button className="btn btn-sm btn-ghost" onClick={quickPet} style={{ flex: 1, fontSize: "0.72rem" }}>
+              💛 Погладить
+            </button>
+            <Link href="/cat" onClick={() => haptic("light")} className="btn btn-sm btn-ghost" style={{ fontSize: "0.72rem", textDecoration: "none" }}>
+              <ChevronRight size={14} />
+            </Link>
           </div>
         </div>
-      </Link>
+      </div>
 
       {/* Переход к Древу уроков и Играм */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
