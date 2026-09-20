@@ -1,4 +1,4 @@
-/** Клиент бэкенда Татар.Уку. Все вызовы — no-throw с фолбэком. */
+/** Клиент бэкенда TATARCHA. Все вызовы — no-throw с фолбэком. */
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 

@@ -31,7 +31,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Hero: Ак Барс ИИ-ассистент */}
+      {/* Hero: Иптәш ИИ-ассистент */}
       <Link href="/cat" onClick={() => haptic("light")} style={{ textDecoration: "none" }}>
         <div className="hero-card animate-slide-up" style={{ display: "flex", alignItems: "center", gap: "1rem", padding: "1.25rem" }}>
           <div style={{ width: 60, height: 60, borderRadius: "50%", background: "var(--gold-soft)", border: "2px solid var(--gold)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "2rem", flexShrink: 0 }}>

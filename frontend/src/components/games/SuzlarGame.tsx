@@ -125,7 +125,7 @@ export function SuzlarGame({ onDone }: { onDone: (basePoints: number) => void })
 
   return (
     <div className="animate-fade-in">
-      <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginBottom: 8 }}>
+      <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginBottom: 8, flexWrap: "wrap" }}>
         <span className="badge badge-gold">Раунд {idx + 1}/{questions.length}</span>
         <span className="badge badge-accent">+{score}</span>
         <span style={{ flex: 1 }} />

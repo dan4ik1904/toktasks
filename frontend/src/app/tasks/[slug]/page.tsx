@@ -481,7 +481,7 @@ export default function TopicPage() {
               onClick={() => setShowHint(true)}
               style={{ marginTop: 8, fontSize: "0.75rem" }}
             >
-              <Lightbulb size={14} /> Подсказка Ак Барса (Разбор ошибки)
+              <Lightbulb size={14} /> Подсказка Иптәша (Разбор ошибки)
             </button>
           )}
           {showHint && (

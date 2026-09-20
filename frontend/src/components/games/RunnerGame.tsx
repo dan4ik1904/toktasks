@@ -708,18 +708,18 @@ export function RunnerGame({ onDone }: { onDone: (storePoints: number) => void }
       </p>
 
       {/* Кнопки управления */}
-      <div style={{ display: "flex", gap: "0.5rem", marginTop: 8 }}>
+      <div style={{ display: "flex", gap: "0.5rem", marginTop: 8, flexWrap: "wrap" }}>
         {status === "idle" && (
-          <button className="btn btn-red" onClick={startGame} style={{ flex: 1 }}>
+          <button className="btn btn-red" onClick={startGame} style={{ flex: "1 1 100%" }}>
             <Play size={16} /> Начать бег
           </button>
         )}
         {status === "playing" && (
           <>
-            <button className="btn btn-ghost" onClick={togglePause} style={{ flex: 1 }}>
+            <button className="btn btn-ghost" onClick={togglePause} style={{ flex: "1 1 90px", whiteSpace: "nowrap" }}>
               <Pause size={16} /> Пауза
             </button>
-            <button className="btn btn-gold" onPointerDown={(e) => { e.preventDefault(); doJump(); }} style={{ flex: 1 }}>
+            <button className="btn btn-gold" onPointerDown={(e) => { e.preventDefault(); doJump(); }} style={{ flex: "1 1 90px", whiteSpace: "nowrap" }}>
               ▲ Прыжок
             </button>
             <button
@@ -727,7 +727,7 @@ export function RunnerGame({ onDone }: { onDone: (storePoints: number) => void }
               onPointerDown={(e) => { e.preventDefault(); setDuck(true); }}
               onPointerUp={() => setDuck(false)}
               onPointerLeave={() => setDuck(false)}
-              style={{ flex: 1 }}
+              style={{ flex: "1 1 90px", whiteSpace: "nowrap" }}
             >
               ▼ Присесть
             </button>

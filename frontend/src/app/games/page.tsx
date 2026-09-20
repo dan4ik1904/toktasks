@@ -62,13 +62,8 @@ export default function GamesPage() {
       )}
 
       {toast && (
-        <div className="animate-pop" style={{
-          position: "fixed", bottom: 90, left: "50%", transform: "translateX(-50%)",
-          background: "var(--gold)", color: "#1a1405", fontWeight: 800, fontSize: "0.85rem",
-          padding: "0.6rem 1.1rem", borderRadius: "999px", boxShadow: "var(--glow-gold)", zIndex: 60,
-          display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap",
-        }}>
-          <Trophy size={14} /> {toast}
+        <div className="toast-float animate-pop">
+          <Trophy size={14} style={{ flexShrink: 0 }} /> <span>{toast}</span>
         </div>
       )}
     </div>

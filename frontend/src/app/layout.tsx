@@ -7,9 +7,9 @@ import { TabBar } from "@/components/tab-bar";
 import { ClientInitializer } from "@/components/client-initializer";
 
 export const metadata: Metadata = {
-  title: "TATARCHA — Татарча өйрәнәбез (TatarLearn)",
+  title: "TATARCHA — Татарча өйрәнәбез",
   description:
-    "Telegram Web App для изучения татарского языка с ИИ-ассистентом Ак Барс и древом уроков.",
+    "Telegram Web App для изучения татарского языка с ИИ-ассистентом Иптәш и древом уроков.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

@@ -35,7 +35,7 @@ export function TabBar() {
               key={tab.href}
               href={tab.href}
               onClick={() => haptic("medium")}
-              aria-label="Ак Барс ИИ-ассистент"
+              aria-label="Иптәш ИИ-ассистент"
               style={{
                 display: "flex",
                 alignItems: "center",

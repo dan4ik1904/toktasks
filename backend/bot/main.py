@@ -1,4 +1,4 @@
-"""Telegram-бот «Татар.Уку» (aiogram 3.x, polling).
+"""Telegram-бот TATARCHA (aiogram 3.x, polling).
 
 Команды:
   /start — приветствие + кнопка WebApp
@@ -34,7 +34,7 @@ def webapp_keyboard() -> InlineKeyboardMarkup:
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text="🐆 Открыть Татар.Уку",
+                    text="🐆 Открыть TATARCHA",
                     web_app=WebAppInfo(url=settings.webapp_url),
                 )
             ]
@@ -46,7 +46,7 @@ def webapp_keyboard() -> InlineKeyboardMarkup:
 async def cmd_start(message: Message) -> None:
     await message.answer(
         "Исәнме! 👋\n\n"
-        "«Татар.Уку» — интерактивное приложение для изучения татарского языка с ИИ-репетитором Ак Барс.\n\n"
+        "TATARCHA — интерактивное приложение для изучения татарского языка с ИИ-репетитором Иптәш.\n\n"
         "Жми кнопку ниже и начни обучение!",
         reply_markup=webapp_keyboard(),
     )
@@ -55,10 +55,10 @@ async def cmd_start(message: Message) -> None:
 @dp.message(Command("help"))
 async def cmd_help(message: Message) -> None:
     await message.answer(
-        "Я бот приложения «Татар.Уку».\n\n"
+        "Я бот приложения TATARCHA.\n\n"
         "/start — открыть мини-приложение\n"
         "/help — это сообщение\n\n"
-        "Внутри: древо уроков Duolingo, мини-игры, ИИ-помощник Ак Барс и скидки в ресторане «Тюбетей».",
+        "Внутри: древо уроков, мини-игры, ИИ-помощник Иптәш и скидки в ресторане «Тюбетей».",
         reply_markup=webapp_keyboard(),
     )
 
@@ -83,7 +83,7 @@ async def main() -> None:
     # Устанавливаем меню команд и кнопку Меню (Mini App)
     try:
         await bot.set_my_commands([
-            BotCommand(command="start", description="Запустить Татар.Уку"),
+            BotCommand(command="start", description="Запустить TATARCHA"),
             BotCommand(command="help", description="Справка о боте")
         ])
         await bot.set_chat_menu_button(

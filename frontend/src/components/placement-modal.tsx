@@ -133,7 +133,7 @@ export function PlacementModal() {
           🐆
         </div>
         <div className="badge badge-gold" style={{ marginBottom: 10 }}>
-          <Sparkles size={12} /> Ак Барс • Входное тестирование
+          <Sparkles size={12} /> Иптәш • Входное тестирование
         </div>
 
         {!resultLevel ? (

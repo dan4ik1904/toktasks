@@ -14,7 +14,7 @@ from gigachat import gigachat
 from island_logic import check_answer, get_island, islands_index
 import db as store
 
-app = FastAPI(title="Татар.Уку API", version="0.4.0")
+app = FastAPI(title="TATARCHA API", version="0.4.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -176,10 +176,10 @@ def api_user_stats(user_id: str = "demo", user: dict | None = Depends(telegram_u
     return store.user_stats(_uid(user, user_id))
 
 
-# --- Голосовой чат с Ак Барсом: STT → GigaChat → TTS ---
+# --- Голосовой чат с Иптәшем: STT → GigaChat → TTS ---
 
 CAT_SYSTEM = (
-    "Син — Ак Барс, татар теле укытучысы. Укучы синең белән сөйләшә. "
+    "Син — Иптәш, татар теле укытучысы. Укучы синең белән сөйләшә. "
     "Отвечай ТОЛЬКО ПО-ТАТАРСКИ (1-2 коротких предложения). "
     "СТРОГИЙ ФОРМАТ: отвечай ТОЛЬКО JSON: "
     '{"tt": "ответ ПО-ТАТАРСКИ (1-2 предложения)", "mood": "happy|thinking|playful|sleeping"}. '
@@ -305,7 +305,7 @@ async def check_speak_task(req: SpeakCheckRequest) -> SpeakCheckResponse:
         heard = req.expected
 
     SPEAK_GRADE_SYSTEM = (
-        "Син — Ак Барс, татар теле укытучысы. Укучы микрофонга сөйләде. "
+        "Син — Иптәш, татар теле укытучысы. Укучы микрофонга сөйләде. "
         "ЭТАЛОН: правильная фраза. УСЛЫШАНО: что распознано микрофоном. "
         "Будь ОЧЕНЬ ЛОЯЛЬНЫМ, мягким и нетребовательным: прощай мелкие акценты, опечатки, пропущенные звуки. "
         "Если смысл или фраза примерно совпадают с эталоном — ставь correct=true и высокий score (85-100). "
@@ -365,7 +365,7 @@ class ErrorExplainResponse(BaseModel):
 
 
 ERROR_EXPLAIN_SYSTEM = (
-    "Син — Ак Барс, татар теле укытучысы. Укучы аудировании яки тәрҗемә биремендә хата ясады. "
+    "Син — Иптәш, татар теле укытучысы. Укучы аудировании яки тәрҗемә биремендә хата ясады. "
     "ЭТАЛОН: правильный ответ. ВВЕДЕНО УЧЕНИКОМ: то, что написал или произнес ученик. "
     "Напиши разбор: укажи на то, что ученик ввел фразу «{user_input}», объясни в чем ошибка (орфография, буквы ә, ө, ү, җ, ң, һ, окончания), "
     "и покажи как правильно. "

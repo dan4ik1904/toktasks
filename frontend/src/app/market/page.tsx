@@ -62,8 +62,8 @@ export default function MarketPage() {
           const afford = points >= item.price;
 
           return (
-            <div key={item.id} className="card" style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-              <div style={{ fontSize: "2.2rem", width: 48, textAlign: "center" }}>{item.icon}</div>
+            <div key={item.id} className="card" style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+              <div style={{ fontSize: "2.2rem", width: 48, textAlign: "center", flexShrink: 0 }}>{item.icon}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                   <span style={{ fontWeight: 800, fontSize: "0.85rem" }}>{item.title}</span>
@@ -73,7 +73,7 @@ export default function MarketPage() {
                 <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--gold)", marginTop: 4 }}>{item.price} 💰 XP</div>
               </div>
               {owned ? (
-                <div className="badge badge-gold" style={{ display: "flex", gap: 4 }}>
+                <div className="badge badge-gold" style={{ display: "flex", gap: 4, flexShrink: 0 }}>
                   <Check size={14} /> Получено
                 </div>
               ) : (
@@ -81,6 +81,7 @@ export default function MarketPage() {
                   className={"btn btn-sm " + (afford ? "btn-gold" : "btn-ghost")}
                   disabled={!afford}
                   onClick={() => handleBuy(item)}
+                  style={{ flexShrink: 0, whiteSpace: "nowrap" }}
                 >
                   Забрать
                 </button>
@@ -91,13 +92,8 @@ export default function MarketPage() {
       </div>
 
       {toast && (
-        <div className="animate-pop" style={{
-          position: "fixed", bottom: 90, left: "50%", transform: "translateX(-50%)",
-          background: "var(--gold)", color: "#1a1405", fontWeight: 800, fontSize: "0.85rem",
-          padding: "0.6rem 1.1rem", borderRadius: "999px", boxShadow: "var(--glow-gold)", zIndex: 60,
-          display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap",
-        }}>
-          <ShoppingBag size={14} /> {toast}
+        <div className="toast-float animate-pop">
+          <ShoppingBag size={14} style={{ flexShrink: 0 }} /> <span>{toast}</span>
         </div>
       )}
     </div>

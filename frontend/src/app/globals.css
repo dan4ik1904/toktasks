@@ -268,6 +268,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+  max-width: 100%;
+  box-sizing: border-box;
   padding: 0.7rem 1.25rem;
   border: none;
   border-radius: 0.9rem;
@@ -316,6 +318,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   justify-content: center;
   gap: 0.3rem;
   white-space: nowrap;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .seg button.active {
   background: linear-gradient(135deg, var(--accent-deep), var(--accent));
@@ -411,6 +417,57 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   padding: 1.25rem;
   box-shadow: var(--card-shadow-hover);
   box-sizing: border-box;
+}
+
+/* ===== Кнопки вариантов квиза: блочные, не налезают друг на друга ===== */
+.quiz-opt {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  border: 2px solid var(--border);
+  background: var(--surface);
+  color: var(--fg);
+  font-weight: 600;
+  font-size: 0.9rem;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: break-word;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+}
+.quiz-opt:not(:disabled):hover { border-color: var(--accent); }
+.quiz-opt:not(:disabled):active { transform: scale(0.99); }
+.quiz-opt:disabled { cursor: default; opacity: 0.85; }
+.quiz-opt.correct { border-color: var(--success); background: var(--accent-soft); }
+.quiz-opt.wrong { border-color: var(--danger); background: var(--danger-soft); }
+
+/* ===== Тосты: никогда не вылезают за края экрана ===== */
+.toast-float {
+  position: fixed;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  max-width: min(480px, calc(100vw - 2rem));
+  box-sizing: border-box;
+  background: var(--gold);
+  color: #1a1405;
+  font-weight: 800;
+  font-size: 0.85rem;
+  padding: 0.6rem 1.1rem;
+  border-radius: 999px;
+  box-shadow: var(--glow-gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: break-word;
 }
 
 /* ===== Игровой Canvas: адаптивный, не выходит за экран ===== */

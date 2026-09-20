@@ -6,7 +6,7 @@ import { useStore, type ChatMessage } from "@/store/use-store";
 import { haptic } from "@/lib/telegram";
 
 // ============================================================
-// Ак Барс — официальный ИИ-ассистент проекта TatarLearn.
+// Иптәш — официальный ИИ-ассистент проекта TATARCHA.
 // Текстовый ввод отвечает строго письменно без автоматического голоса.
 // ============================================================
 
@@ -230,7 +230,7 @@ export default function AkBarsAssistantPage() {
           </div>
           <div>
             <div className="badge badge-gold" style={{ marginBottom: 2 }}>
-              <Sparkles size={11} /> Ак Барс • AI Tutor
+              <Sparkles size={11} /> Иптәш • AI Tutor
             </div>
             <h1 className="page-title" style={{ fontSize: "1.2rem" }}>Умный помощник</h1>
           </div>
@@ -337,7 +337,7 @@ export default function AkBarsAssistantPage() {
         ))}
         {isThinking && (
           <div style={{ display: "flex", gap: "0.6rem", alignItems: "center", color: "var(--fg-muted)", fontSize: "0.8rem" }}>
-            <span>🐆</span> Ак Барс думает...
+              <span>🐆</span> Иптәш думает...
           </div>
         )}
       </div>
@@ -356,7 +356,7 @@ export default function AkBarsAssistantPage() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && sendText()}
-          placeholder="Спроси Ак Барса на татарском или русском..."
+          placeholder="Спроси Иптәша на татарском или русском..."
           style={{
             flex: 1,
             minWidth: 0,
