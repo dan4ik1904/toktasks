@@ -245,7 +245,7 @@ export function EchpochmakGame({ onDone }: { onDone: (pts: number) => void }) {
       </p>
 
       <div className="game-canvas-wrap" style={{ position: "relative" }}>
-        <canvas ref={canvasRef} width={W} height={H} style={{ width: "100%", borderRadius: "0.75rem", background: "#07130e" }} />
+        <canvas ref={canvasRef} width={W} height={H} style={{ width: "100%", height: "auto", maxWidth: "100%", borderRadius: "0.75rem", background: "#07130e" }} />
 
         {status === "idle" && (
           <div style={{ position: "absolute", inset: 0, background: "rgba(7,19,14,0.82)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "1rem" }}>

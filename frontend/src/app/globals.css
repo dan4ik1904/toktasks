@@ -413,6 +413,24 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   box-sizing: border-box;
 }
 
+/* ===== Игровой Canvas: адаптивный, не выходит за экран ===== */
+.game-canvas-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--bg);
+  box-shadow: var(--card-shadow);
+}
+.game-canvas-wrap canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  touch-action: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     scroll-behavior: auto !important;

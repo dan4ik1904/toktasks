@@ -10,9 +10,9 @@ import { QuizGame } from "@/components/games/QuizGame";
 type GameTab = "runner" | "catcher" | "quiz";
 
 const TABS: { id: GameTab; label: string; desc: string }[] = [
-  { id: "runner", label: "👹 Шурале-раннер", desc: "Беги джигитом от лесного духа Шурале, перепрыгивай преграды." },
-  { id: "catcher", label: "🥟 Өчпочмак җыю", desc: "Лови падающие традиционные блюда и уклоняйся от мухоморов." },
-  { id: "quiz", label: "📚 Словарный квиз", desc: "Проверка словарного запаса по уровням." },
+  { id: "runner", label: "👹 Шурале", desc: "Беги джигитом от лесного духа Шурале, перепрыгивай преграды." },
+  { id: "catcher", label: "🥟 Эчпочмак", desc: "Лови падающие традиционные блюда и уклоняйся от мухоморов." },
+  { id: "quiz", label: "📚 Квиз", desc: "Проверка словарного запаса по уровням." },
 ];
 
 export default function GamesPage() {
@@ -43,7 +43,7 @@ export default function GamesPage() {
         <p className="page-subtitle">Аркадные мини-игры (награды сбалансированы и уменьшены)</p>
       </div>
 
-      <div className="seg" style={{ gridTemplateColumns: "1fr 1fr 1fr" }} role="tablist" aria-label="Выбор игры">
+      <div className="seg" role="tablist" aria-label="Выбор игры">
         {TABS.map((t) => (
           <button
             key={t.id}

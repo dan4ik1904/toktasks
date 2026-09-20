@@ -694,6 +694,7 @@ export function RunnerGame({ onDone }: { onDone: (storePoints: number) => void }
           ref={canvasRef}
           width={W}
           height={H}
+          style={{ width: "100%", height: "auto", maxWidth: "100%" }}
           onPointerDown={(e) => {
             e.preventDefault();
             if (statusRef.current === "idle" || statusRef.current === "over") startGame();
