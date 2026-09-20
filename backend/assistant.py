@@ -7,20 +7,119 @@ from __future__ import annotations
 
 import json
 import re
+import xml.etree.ElementTree as ET
+
 import httpx
 from config import settings
 
 TT_LETTERS = set("әөүҗңһӘӨҮҖҢҺ")
 
+# --- Детерминированные переводы: точный ответ из словаря, а не выдумка модели ---
+
+_RU_TT_PATTERNS = (
+    r"как\s+(будет|сказать|переводится)\s+[«\"'‘’]?\s*(.+?)\s*[»\"'‘’]?\s+по-татарски",
+    r"(?:а|и)\s+как\s+(будет|сказать)\s+[«\"'‘’]?\s*(.+?)\s*[»\"'‘’]?\s*\??$",
+    r"(.+?)\s+по-татарски\s+как(?:\s+будет)?",
+    r"переведи(?:те)?\s+(?:пожалуйста,?\s+)?[«\"']?\s*(.+?)\s*[»\"']?\s*(?:на\s+татарский(?:\s+язык)?)?$",
+)
+_TT_RU_PATTERNS = (
+    r"(?:что\s+)?(?:значит|означает|такое)\s+[«\"'‘’]?\s*(.+?)\s*[»\"'‘’]?\s*\??$",
+)
+
+_PUNCT = re.compile(r"[^\w\s]", re.UNICODE)
+
+
+def _norm_word(s: str) -> str:
+    return _PUNCT.sub("", s.lower()).strip()
+
+
+def _clean_phrase(s: str) -> str:
+    s = s.strip().strip("«»\"'‘’?!.,").strip()
+    s = re.sub(r"\s+", " ", s)
+    return s
+
+
+def _detect_translation_query(text: str) -> tuple[str, str] | None:
+    """Возвращает (src, dst, фраза) для переводческих вопросов либо None."""
+    t = _clean_phrase(text)
+    if not t or len(t) > 100:
+        return None
+    low = t.lower()
+    for pat in _RU_TT_PATTERNS:
+        m = re.search(pat, low)
+        if m:
+            phrase = _clean_phrase(m.group(m.lastindex or 2))
+            if 0 < len(phrase.split()) <= 6:
+                return ("ru", "tt", phrase)
+    for pat in _TT_RU_PATTERNS:
+        m = re.search(pat, low)
+        if m:
+            phrase = _clean_phrase(m.group(1))
+            words = phrase.split()
+            # tt->ru только для коротких фраз с татарскими буквами — иначе это общий вопрос модели
+            if 0 < len(words) <= 4 and any(ch in TT_LETTERS for ch in phrase):
+                return ("tt", "ru", phrase)
+    # «переведи X» без явного направления — по алфавиту фразы
+    return None
+
+
+def _offline_vocab_lookup(text: str, src: str, dst: str) -> str | None:
+    """Поиск по словам островов с сохранением исходного регистра."""
+    try:
+        from island_logic import ISLANDS, _norm
+        key = _norm(text)
+        for island in ISLANDS:
+            for lesson in island.get("lessons", []):
+                for w in lesson.get("words", []):
+                    tt, ru = str(w.get("tt", "")), str(w.get("ru", ""))
+                    if src == "tt" and dst == "ru" and _norm(tt) == key:
+                        return ru
+                    if src == "ru" and dst == "tt" and _norm(ru) == key:
+                        return tt
+    except Exception:
+        return None
+    return None
+
+
+async def _tatsoft_translate(text: str, src: str, dst: str) -> str | None:
+    lang = "0" if (src == "ru" and dst == "tt") else "1"
+    try:
+        async with httpx.AsyncClient(
+            base_url=settings.tatsoft_translate_base.rstrip("/"), timeout=8
+        ) as client:
+            resp = await client.get("/translate", params={"lang": lang, "text": text})
+            resp.raise_for_status()
+            body = resp.text.strip()
+            if not body:
+                return None
+            if body.startswith("<"):
+                root = ET.fromstring(body)
+                mt = root.findtext("mt")
+                return mt.strip() if mt and mt.strip() else None
+            return body
+    except Exception:
+        return None
+
+
+async def translate_direct(text: str, src: str, dst: str) -> str | None:
+    """Точный перевод: сначала Tatsoft, затем офлайн-словарь островов."""
+    hit = await _tatsoft_translate(text, src, dst)
+    if hit:
+        return hit
+    return _offline_vocab_lookup(text, src, dst)
+
 SYSTEM_PROMPT = (
     "Син — Иптәш, татар теленең профессиональ укытучысы һәм дусты. "
     "Укучы сиңа теләсә нинди сорау бирә ала (татар теле, грамматика, сүзлекләр, тарих, мәдәният яки көнкүреш). "
-    "Диалогның тарихын исәпкә ал: укучының алдагы сорауларына таян, контекстны тот, үзеңне кабатлама, кирәк чакта ачыклау соравы бир. "
-    "Укучының телендә җавап бир: русча язса — төп җавап русча + мөһим сүзләр татарча; татарча язса — төп җавап татарча + русча аңлатма. "
-    "Җавап кыска һәм файдалы булсын: һәр телгә 2-4 җөмлә, мисаллар белән. "
-    "СТРОГИЙ ФОРМАТ ОТВЕТА (JSON, без markdown и лишнего текста): "
-    '{"tt": "ответ на татарском языке", "ru": "ответ на русском языке"}. '
-    "Не пиши ничего, кроме валидного JSON."
+    "Диалогның тарихын исәпкә ал: алдагы репликаларга таян, контекстны тот, үзеңне кабатлама, кирәк чакта кыска ачыклау соравы бир. "
+    "Тел кагыйдәсе: соңгы хәбәр русча икән — төп җавап русча, татарча мисаллар белән; татарча икән — төп җавап татарча, русча аңлатма белән. "
+    "Җавап кыска булсын: һәр телгә 2-4 җөмлә. "
+    "КАТЕТ: татар сүзләрен беркайчан уйлап чыгарма! Төгәл формага ышанмасаң — русча аңлат һәм моны әйт. Дөрес кыска җавап ялган озыннан яхшырак. "
+    "Проверенные слова (используй их точь-в-точь): әни — мама; әти — папа; сәлам/исәнме — привет; рәхмәт — спасибо; сау бул — до свидания; Казан — Казань; китап — книга; су — вода; ипи — хлеб; чәй — чай; сөт — молоко; эт — собака; мәче — кошка; укырга — читать; яратырга — любить; барырга — идти. "
+    "Пример правильного ответа на «Как будет спасибо?»: "
+    '{"tt": "Рәхмәт", "ru": "«Спасибо» по-татарски — «Рәхмәт». Вежливо: «Зур рәхмәт» — большое спасибо."}. '
+    "СТРОГИЙ ФОРМАТ ОТВЕТА (только валидный JSON, без markdown): "
+    '{"tt": "ответ на татарском", "ru": "ответ на русском"}.'
 )
 
 OFFLINE_QA: tuple[tuple[tuple[str, ...], str, str], ...] = (
@@ -102,7 +201,7 @@ def _extract_json(text: str) -> dict | None:
     return None
 
 
-async def chat(messages: list[dict], temperature: float = 0.5, max_tokens: int = 600) -> str:
+async def chat(messages: list[dict], temperature: float = 0.3, max_tokens: int = 600) -> str:
     # Всю историю (контекст диалога) отдаём модели как есть
     clean = [
         {"role": "assistant" if m.get("role") == "assistant" else "user",
@@ -112,6 +211,31 @@ async def chat(messages: list[dict], temperature: float = 0.5, max_tokens: int =
     ]
     # Последние 12 реплик — достаточно контекста и влезает в лимиты
     clean = clean[-12:]
+
+    last_user = ""
+    for m in reversed(clean):
+        if m["role"] == "user":
+            last_user = m["content"]
+            break
+
+    # Переводческие вопросы — точный ответ из словаря (модель их выдумывает)
+    detected = _detect_translation_query(last_user)
+    if detected:
+        src, dst, phrase = detected
+        # «переведи X» без направления: по алфавиту фразы
+        if src == "ru" and dst == "tt" and any(ch in TT_LETTERS for ch in phrase):
+            src, dst = "tt", "ru"
+        hit = await translate_direct(phrase, src, dst)
+        if hit:
+            if dst == "tt":
+                return json.dumps(
+                    {"tt": hit, "ru": f"«{phrase}» по-татарски — «{hit}»."},
+                    ensure_ascii=False,
+                )
+            return json.dumps(
+                {"tt": phrase, "ru": f"«{phrase}» означает «{hit}»."},
+                ensure_ascii=False,
+            )
 
     # GigaChat: умные контекстные ответы на любые вопросы
     if settings.gigachat_auth_key:
