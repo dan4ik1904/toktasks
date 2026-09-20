@@ -13,7 +13,7 @@ import { playMunch, playPurr } from "@/lib/pet-sounds";
 import { haptic } from "@/lib/telegram";
 
 export default function HomePage() {
-  const { name, points, streak, dailyTasks, completedTasks, achievements } = useStore();
+  const { points, streak, dailyTasks, completedTasks, achievements } = useStore();
   const { petHunger, petHappiness, petEnergy, petOutfit, feedPet, petPet, muted } = useStore();
   const { t } = useLang();
   const [partnerOpen, setPartnerOpen] = useState(false);
@@ -44,7 +44,6 @@ export default function HomePage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="page-title">TATARCHA</h1>
-          <p className="page-subtitle">Салам, {name}! Бүген нәрсә өйрәнәбез?</p>
         </div>
         <div className="badge badge-accent">
           <Zap size={12} /> {points} XP

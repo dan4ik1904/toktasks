@@ -301,7 +301,7 @@ export default function TamagotchiCatPage() {
                 </span>
               )}
             </div>
-            <div style={{ fontWeight: 800, fontSize: "1.1rem", marginTop: 8 }}>Иптәш (Iptäsh)</div>
+            <div style={{ fontWeight: 800, fontSize: "1.1rem", marginTop: 8 }}>Иптәш</div>
             <div style={{ fontSize: "0.75rem", color: "var(--fg-muted)" }}>
               {mood === "sleepy"
                 ? "Хочет спать... 😴"
