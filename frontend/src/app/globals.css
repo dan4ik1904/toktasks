@@ -3,6 +3,7 @@
 /* ============================================================
    TATARCHA — редизайн 2026 (Исправлены баги верстки, переполнение и наслоения)
    Дисплей: Unbounded, текст: Manrope.
+   Татарские символы: ә, ө, ү, җ, ң, һ
    ============================================================ */
 
 :root {
@@ -125,6 +126,7 @@
   --font-sans: "Manrope", "PT Sans", "Segoe UI", Arial, sans-serif;
   --font-display: "Unbounded", "Manrope", "Segoe UI", sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-tatar: "Manrope", "PT Sans", "Noto Sans", "Segoe UI", Arial, sans-serif;
 }
 
 * {
@@ -143,12 +145,25 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
   margin: 0;
   padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 .font-display, h1, h2 {
   font-family: "Unbounded", "Manrope", "Segoe UI", sans-serif;
   text-wrap: balance;
   letter-spacing: -0.01em;
+}
+
+/* Класс для татарского текста — гарантирует корректный рендеринг ә, ө, ү, җ, ң, һ */
+.font-tatar, [lang="tt"], .tt-text {
+  font-family: "Manrope", "PT Sans", "Noto Sans", "Segoe UI", Arial, sans-serif;
+  font-feature-settings: "locl" 1, "cyrl" 1;
+  font-variant-ligatures: common-ligatures contextual;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 button, a { outline-offset: 3px; }
