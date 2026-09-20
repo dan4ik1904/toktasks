@@ -5,7 +5,7 @@ import { Play, Pause, RotateCcw } from "lucide-react";
 import { haptic } from "@/lib/telegram";
 
 // ============================================================
-// «Өчпочмак җыю» (Эчпочмак-Кэтчер): аркадная мини-игра.
+// «Өчпочмак җыю»: аркадная мини-игра.
 // Лови падающие өчпочмаки и чак-чак, уворачивайся от мухоморов!
 // Награда сильно снижена (сбалансированная экономика).
 // ============================================================
@@ -239,7 +239,7 @@ export function EchpochmakGame({ onDone }: { onDone: (pts: number) => void }) {
 
   return (
     <div className="card" style={{ textAlign: "center", padding: "1rem" }}>
-      <div style={{ fontWeight: 800, fontSize: "1rem", marginBottom: 6 }}>🥟 Өчпочмак җыю (Эчпочмак-Кэтчер)</div>
+      <div style={{ fontWeight: 800, fontSize: "1rem", marginBottom: 6 }}>🥟 Өчпочмак җыю</div>
       <p style={{ fontSize: "0.75rem", color: "var(--fg-muted)", marginBottom: 10 }}>
         Лови падающие өчпочмаки и чак-чак. Уклоняйся от мухоморов! (Награда снижена).
       </p>
