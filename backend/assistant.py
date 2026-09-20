@@ -217,6 +217,7 @@ async def chat(messages: list[dict], temperature: float = 0.3, max_tokens: int =
         if m["role"] == "user":
             last_user = m["content"]
             break
+    user_low = last_user.lower()
 
     # Переводческие вопросы — точный ответ из словаря (модель их выдумывает)
     detected = _detect_translation_query(last_user)
@@ -237,7 +238,12 @@ async def chat(messages: list[dict], temperature: float = 0.3, max_tokens: int =
                 ensure_ascii=False,
             )
 
-    # GigaChat: умные контекстные ответы на любые вопросы
+    # Проверенные темы — курированный ответ сразу (модель выдумывает термины)
+    for triggers, tt_resp, ru_resp in OFFLINE_QA:
+        if any(t in user_low for t in triggers):
+            return json.dumps({"tt": tt_resp, "ru": ru_resp}, ensure_ascii=False)
+
+    # GigaChat: умные контекстные ответы на остальные вопросы
     if settings.gigachat_auth_key:
         try:
             from gigachat import gigachat as gg
@@ -252,19 +258,8 @@ async def chat(messages: list[dict], temperature: float = 0.3, max_tokens: int =
         except Exception:
             pass
 
-    user_msg = ""
-    for m in reversed(clean):
-        if m["role"] == "user":
-            user_msg = m["content"].lower()
-            break
-
-    # Офлайн-база: настоящие мини-ответы, а не заглушки
-    for triggers, tt_resp, ru_resp in OFFLINE_QA:
-        if any(t in user_msg for t in triggers):
-            return json.dumps({"tt": tt_resp, "ru": ru_resp}, ensure_ascii=False)
-
     # Честный фолбэк: просим уточнить вместо выдуманного "умного" ответа
-    short_q = (user_msg[:120] + "…") if len(user_msg) > 120 else user_msg
+    short_q = (user_low[:120] + "…") if len(user_low) > 120 else user_low
     return json.dumps({
         "tt": f"Сорауыңны ишеттем: «{short_q}». Төгәл җавап бирү өчен аны бераз ачыклап яз әле — мәсәлән, бу грамматика, тәрҗемә яки сүз мәгънәсе турындамы?",
         "ru": f"Услышал твой вопрос: «{short_q}». Чтобы ответить точно, уточни его, пожалуйста — это про грамматику, перевод или значение слова? Могу разобрать алфавит, падежи, времена глаголов и лексику."
