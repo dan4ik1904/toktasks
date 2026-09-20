@@ -51,7 +51,12 @@ interface AppState {
   unlockAchievement: (id: string) => void;
   toggleMute: () => void;
   setChatMessages: (msgs: ChatMessage[] | ((prev: ChatMessage[]) => ChatMessage[])) => void;
-  syncFromServer: (data: Record<string, unknown>) => void;
+  /** Полное применение снапшота из БД (per-TG-аккаунт). Не трогает tgId/name. */
+  applyServerSnapshot: (data: Record<string, unknown>) => void;
+  /** Сброс данных профиля (при смене TG-аккаунта). tgId/name сохраняет. */
+  resetProfileData: () => void;
+  profileReady: boolean;
+  setProfileReady: (v: boolean) => void;
   reset: () => void;
 }
 
@@ -68,6 +73,23 @@ const DEFAULT_ACHIEVEMENTS: Achievement[] = [
 function todayStr(): string {
   return new Date().toISOString().slice(0, 10);
 }
+
+const LEVELS = ["beginner", "elementary", "intermediate", "advanced"] as const;
+
+function strArray(v: unknown, limit: number): string[] {
+  if (!Array.isArray(v)) return [];
+  return v.filter((x): x is string => typeof x === "string").slice(0, limit);
+}
+
+function num(v: unknown, fallback: number): number {
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : fallback;
+}
+
+const GREETING: ChatMessage = {
+  role: "assistant",
+  text: "Иминлек! Мин — Ак Барс, твой ИИ-помощник в изучении татарского языка. Спроси меня о чем угодно, переводи фразы или общайся на любые темы!",
+};
 
 export const useStore = create<AppState>()(
   persist(
@@ -187,10 +209,67 @@ export const useStore = create<AppState>()(
         return { achievements };
       }),
 
-      syncFromServer: (data) => set((s) => ({
-        points: (data.points as number) ?? s.points,
-        streak: (data.streak as number) ?? s.streak,
+      applyServerSnapshot: (data) => set((s) => {
+        const lvl = (LEVELS as readonly string[]).includes(data.userLevel as string)
+          ? (data.userLevel as ProficiencyLevel)
+          : s.userLevel;
+        const achievements = [...DEFAULT_ACHIEVEMENTS];
+        if (Array.isArray(data.achievements)) {
+          for (const a of data.achievements as Array<{ id?: string; unlocked?: boolean; unlockedAt?: number }>) {
+            const cur = achievements.find((x) => x.id === a?.id);
+            if (cur && a?.unlocked) {
+              cur.unlocked = true;
+              cur.unlockedAt = typeof a.unlockedAt === "number" ? a.unlockedAt : Date.now();
+            }
+          }
+        }
+        let chatMessages = s.chatMessages;
+        if (Array.isArray(data.chatMessages)) {
+          const msgs = (data.chatMessages as unknown[]).filter(
+            (m): m is ChatMessage =>
+              !!m && typeof m === "object" &&
+              ((m as ChatMessage).role === "user" || (m as ChatMessage).role === "assistant") &&
+              typeof (m as ChatMessage).text === "string",
+          ).slice(-40);
+          if (msgs.length > 0) chatMessages = msgs;
+        }
+        return {
+          points: num(data.points, s.points),
+          streak: num(data.streak, s.streak),
+          lastDay: typeof data.lastDay === "string" ? data.lastDay : s.lastDay,
+          dailyTasks: num(data.dailyTasks, s.dailyTasks),
+          dailyTasksDay: typeof data.dailyTasksDay === "string" ? data.dailyTasksDay : s.dailyTasksDay,
+          completedTasks: strArray(data.completedTasks, 2000),
+          completedTopics: strArray(data.completedTopics, 500),
+          achievements,
+          shopPurchases: strArray(data.shopPurchases, 500),
+          gamesPlayed: num(data.gamesPlayed, s.gamesPlayed),
+          userLevel: lvl,
+          muted: typeof data.muted === "boolean" ? data.muted : s.muted,
+          chatMessages,
+        };
+      }),
+
+      resetProfileData: () => set((s) => ({
+        points: 0,
+        streak: 0,
+        lastDay: "",
+        dailyTasks: 0,
+        dailyTasksDay: "",
+        completedTasks: [],
+        completedTopics: [],
+        achievements: [...DEFAULT_ACHIEVEMENTS],
+        shopPurchases: [],
+        gamesPlayed: 0,
+        userLevel: null,
+        muted: false,
+        chatMessages: [GREETING],
+        tgId: s.tgId,
+        name: s.name,
       })),
+
+      profileReady: false,
+      setProfileReady: (v) => set({ profileReady: v }),
 
       reset: () => set({
         points: 0,

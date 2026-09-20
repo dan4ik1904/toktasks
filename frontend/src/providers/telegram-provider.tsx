@@ -30,10 +30,12 @@ function detectTelegram(): { inTelegram: boolean; user?: User; raw?: string } {
     const tg = w.Telegram as Record<string, unknown> | undefined;
     const webapp = tg?.WebApp as Record<string, unknown> | undefined;
     if (!webapp) return { inTelegram: false };
+    // Сырой initData — это строка webapp.initData (нужна бэкенду для подписи).
+    const raw =
+      (typeof webapp.initData === "string" && webapp.initData) || undefined;
     const unsafe = webapp.initDataUnsafe as Record<string, unknown> | undefined;
-    const raw = unsafe?.query ? String(unsafe.query) : "";
     const userData = unsafe?.user as User | undefined;
-    return { inTelegram: true, user: userData, raw: raw || undefined };
+    return { inTelegram: true, user: userData, raw };
   } catch {
     return { inTelegram: false };
   }

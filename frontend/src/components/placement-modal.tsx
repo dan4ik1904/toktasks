@@ -74,7 +74,7 @@ function levelForScore(score: number): ProficiencyLevel {
 }
 
 export function PlacementModal() {
-  const { userLevel, setUserLevel, addPoints, completeTopic } = useStore();
+  const { userLevel, setUserLevel, addPoints, completeTopic, profileReady } = useStore();
   const [step, setStep] = useState(0);
   const [score, setScore] = useState(0);
   const [resultLevel, setResultLevel] = useState<ProficiencyLevel | null>(null);
@@ -86,6 +86,9 @@ export function PlacementModal() {
     return [...current.options].sort(() => Math.random() - 0.5);
   }, [step]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Ждём привязку к TG-аккаунту и загрузку из БД — иначе новый аккаунт
+  // на том же устройстве на миг увидит чужой тест/прогресс.
+  if (!profileReady) return null;
   if (userLevel !== null) return null;
 
   const handleAnswer = (opt: string) => {

@@ -10,10 +10,21 @@ const KEYS = {
   quizStreak: "quiz-streak",
 } as const;
 
+/** Префикс per-TG-аккаунт: разные аккаунты на одном устройстве не видят чужие рекорды. */
+let NS = "";
+
+export function setStorageNamespace(ns: string): void {
+  NS = ns || "";
+}
+
+function namespaced(key: string): string {
+  return NS ? `${NS}:${key}` : key;
+}
+
 function readNum(key: string): number {
   if (typeof window === "undefined") return 0;
   try {
-    const v = window.localStorage.getItem(key);
+    const v = window.localStorage.getItem(namespaced(key));
     const n = v ? parseInt(v, 10) : 0;
     return Number.isFinite(n) && n > 0 ? n : 0;
   } catch {
@@ -24,7 +35,7 @@ function readNum(key: string): number {
 function writeNum(key: string, value: number): void {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(key, String(Math.floor(value)));
+    window.localStorage.setItem(namespaced(key), String(Math.floor(value)));
   } catch {
     // приватный режим — молча игнорируем
   }

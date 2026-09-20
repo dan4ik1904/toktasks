@@ -119,6 +119,30 @@ def api_get_progress(user_id: str = "demo", user: dict | None = Depends(telegram
     return store.me(_uid(user, user_id))
 
 
+class StateSaveRequest(BaseModel):
+    user_id: str = "demo"
+    first_name: str = ""
+    username: str = ""
+    data: dict = {}
+
+
+@app.get("/api/state")
+def api_get_state(user_id: str = "demo", user: dict | None = Depends(telegram_user)) -> dict:
+    uid = _uid(user, user_id)
+    snap = store.load_state(uid)
+    if snap is None:
+        return {"exists": False, "updated_at": 0, "data": {}}
+    return {"exists": True, "updated_at": snap["updated_at"], "data": snap["data"]}
+
+
+@app.post("/api/state")
+def api_save_state(req: StateSaveRequest, user: dict | None = Depends(telegram_user)) -> dict:
+    uid = _uid(user, req.user_id)
+    if not uid:
+        raise HTTPException(status_code=400, detail="unknown user")
+    return store.save_state(uid, req.data or {}, req.first_name, req.username)
+
+
 class ChatMsg(BaseModel):
     role: str = "user"
     text: str = ""

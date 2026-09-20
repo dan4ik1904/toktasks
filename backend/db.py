@@ -48,6 +48,11 @@ def init_db() -> None:
               tg_id TEXT, lesson_id TEXT, created_at INTEGER DEFAULT 0,
               PRIMARY KEY (tg_id, lesson_id))"""
         )
+        c.execute(
+            """CREATE TABLE IF NOT EXISTS user_state(
+              tg_id TEXT PRIMARY KEY, data TEXT DEFAULT '{}',
+              updated_at INTEGER DEFAULT 0)"""
+        )
 
 
 def _today() -> str:
@@ -205,6 +210,66 @@ def stats() -> dict:
         "average_xp": round(avg_xp),
         "top_xp": top_xp,
     }
+
+
+def load_state(tg_id: str) -> dict | None:
+    """Снапшот прогресса пользователя (JSON) либо None, если его нет."""
+    init_db()
+    with _conn() as c:
+        r = c.execute("SELECT data, updated_at FROM user_state WHERE tg_id=?", (tg_id,)).fetchone()
+        if r is None:
+            return None
+        import json
+        try:
+            data = json.loads(r["data"] or "{}")
+        except Exception:
+            data = {}
+        return {"data": data, "updated_at": r["updated_at"] or 0}
+
+
+def save_state(tg_id: str, data: dict, first_name: str = "", username: str = "") -> dict:
+    """Сохраняет снапшот прогресса и зеркалит агрегаты в users/completions.
+
+    Чтобы лидерборд и статистика продолжали работать, xp/streak из снапшота
+    копируются в users, а выполненные задания/темы — в completions.
+    """
+    import json
+    init_db()
+    now = int(time.time())
+    clean: dict = data if isinstance(data, dict) else {}
+    tasks = [str(x) for x in (clean.get("completedTasks") or []) if isinstance(x, str)][:2000]
+    topics = [str(x) for x in (clean.get("completedTopics") or []) if isinstance(x, str)][:500]
+    try:
+        xp = int(clean.get("points") or 0)
+    except Exception:
+        xp = 0
+    try:
+        streak = int(clean.get("streak") or 0)
+    except Exception:
+        streak = 0
+    xp = max(0, min(xp, 10_000_000))
+    streak = max(0, min(streak, 3650))
+    payload = json.dumps(clean, ensure_ascii=False)[:400_000]
+    with _lock, _conn() as c:
+        c.execute(
+            """INSERT INTO user_state(tg_id, data, updated_at) VALUES(?,?,?)
+               ON CONFLICT(tg_id) DO UPDATE SET data=excluded.data, updated_at=excluded.updated_at""",
+            (tg_id, payload, now),
+        )
+        c.execute(
+            """INSERT INTO users(tg_id, first_name, username, xp, streak, hearts, hearts_at, created_at)
+               VALUES(?,?,?,?,?,?,?,?)
+               ON CONFLICT(tg_id) DO UPDATE SET xp=excluded.xp, streak=excluded.streak""",
+            (tg_id, first_name, username, xp, streak, MAX_HEARTS, now, now),
+        )
+        rows = [(tg_id, lid, now) for lid in tasks]
+        rows += [(tg_id, f"topic:{slug}", now) for slug in topics]
+        if rows:
+            c.executemany(
+                "INSERT INTO completions(tg_id, lesson_id, created_at) VALUES(?,?,?) ON CONFLICT DO NOTHING",
+                rows,
+            )
+    return {"ok": True, "updated_at": now}
 
 
 def user_stats(tg_id: str) -> dict:

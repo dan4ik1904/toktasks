@@ -4,13 +4,18 @@ import { useState } from "react";
 import Link from "next/link";
 import { useStore } from "@/store/use-store";
 import { useTheme } from "@/providers/theme-provider";
+import { useTelegram } from "@/providers/telegram-provider";
 import { useLang, type Lang } from "@/store/use-lang";
 import { Zap, Flame, Trophy, Sun, Moon, QrCode, Globe, VolumeX, Volume2, ShoppingBag, ChevronRight } from "lucide-react";
 import { PartnerModal } from "@/components/partner-modal";
 import { haptic } from "@/lib/telegram";
 
 export default function ProfilePage() {
-  const { name, setName, points, streak, completedTasks, achievements, muted, toggleMute } = useStore();
+  const { name, setName, points, streak, completedTasks, achievements, muted, toggleMute, tgId } = useStore();
+  const { user: tgUser, isInTelegram } = useTelegram();
+  const tgDisplayName = tgUser
+    ? [tgUser.first_name, tgUser.last_name].filter(Boolean).join(" ") || name
+    : name;
   const { theme, toggleTheme } = useTheme();
   const { lang, setLang, t } = useLang();
   const [partnerOpen, setPartnerOpen] = useState(false);
@@ -81,23 +86,37 @@ export default function ProfilePage() {
         </button>
       </div>
 
-      {/* User card */}
+      {/* User card — данные TG-аккаунта, прогресс хранится в БД per-аккаунт */}
       <div className="card card-gold" style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
         <div style={{
           width: 56, height: 56, borderRadius: "50%", background: "var(--accent)",
           display: "flex", alignItems: "center", justifyContent: "center",
           color: "#fff", fontWeight: 800, fontSize: "1.3rem",
-          border: "3px solid var(--gold)",
+          border: "3px solid var(--gold)", flexShrink: 0,
         }}>
-          {name.charAt(0).toUpperCase()}
+          {(tgDisplayName || "У").charAt(0).toUpperCase()}
         </div>
-        <div style={{ flex: 1 }}>
-          <input value={name} onChange={(e) => setName(e.target.value)}
-            style={{ background: "transparent", border: "none", color: "var(--fg)", fontWeight: 700, fontSize: "1rem", width: "100%", padding: 0 }} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {isInTelegram && tgUser ? (
+            <>
+              <div style={{ color: "var(--fg)", fontWeight: 700, fontSize: "1rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {tgDisplayName}
+              </div>
+              <div style={{ fontSize: "0.72rem", color: "var(--fg-muted)" }}>
+                {tgUser.username ? `@${tgUser.username} • ` : ""}TG ID: {tgUser.id} • ☁️ в облаке
+              </div>
+            </>
+          ) : (
+            <input value={name} onChange={(e) => setName(e.target.value)}
+              style={{ background: "transparent", border: "none", color: "var(--fg)", fontWeight: 700, fontSize: "1rem", width: "100%", padding: 0 }} />
+          )}
           <div style={{ fontSize: "0.75rem", color: "var(--fg-muted)" }}>{t("level")} {level} • Татар тилен өйрәнәбез</div>
           <div className="progress-track" style={{ marginTop: 6 }}>
             <div className="progress-fill progress-fill-gold" style={{ width: xpInLevel + "%" }} />
           </div>
+          {!isInTelegram && (
+            <div style={{ fontSize: "0.65rem", color: "var(--fg-muted)", marginTop: 4 }}>Демо-профиль (вне Telegram): {tgId}</div>
+          )}
         </div>
       </div>
 
