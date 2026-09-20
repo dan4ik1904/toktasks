@@ -416,6 +416,9 @@ export default function TopicPage() {
             {topic.icon} {topic.title}
           </h1>
           <p className="page-subtitle">{topic.titleTt} · {totalDone}/{topic.tasks.length}</p>
+          <div style={{ marginTop: 4 }}>
+            <span className="badge badge-gold">Уровень {topic.difficulty} из 4</span>
+          </div>
         </div>
       </div>
 

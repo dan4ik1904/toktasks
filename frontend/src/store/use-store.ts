@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { ProficiencyLevel } from "@/components/placement-modal";
+import { TOPICS } from "@/data/topics";
 
 export interface Achievement {
   id: string;
@@ -160,7 +161,7 @@ export const useStore = create<AppState>()(
           const a = achievements.find((a) => a.id === "topic-5");
           if (a && !a.unlocked) { a.unlocked = true; a.unlockedAt = Date.now(); }
         }
-        if (completedTopics.length >= 15) {
+        if (completedTopics.length >= TOPICS.length) {
           const a = achievements.find((a) => a.id === "all-topics");
           if (a && !a.unlocked) { a.unlocked = true; a.unlockedAt = Date.now(); }
         }
