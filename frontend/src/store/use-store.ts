@@ -39,6 +39,13 @@ interface AppState {
   /** Эпоха глобального сброса: видели ли мы последний wipe (high-water mark). */
   epoch: number;
   chatMessages: ChatMessage[];
+  // Тамагочи «Иптәш»
+  petHunger: number; // 0..100 (100 = сытый)
+  petHappiness: number; // 0..100 (100 = счастливый)
+  petEnergy: number; // 0..100 (100 = бодрый)
+  petOutfit: string; // "none" | "tubetey" | "scarf" | "glasses" | "crown"
+  ownedOutfits: string[];
+  lastTickTime: number;
 
   setTgId: (id: string) => void;
   setName: (name: string) => void;
@@ -57,6 +64,12 @@ interface AppState {
   setKbdHintShown: () => void;
   setEpoch: (v: number) => void;
   setChatMessages: (msgs: ChatMessage[] | ((prev: ChatMessage[]) => ChatMessage[])) => void;
+  feedPet: (foodType: "echpochmak" | "chakchak" | "milk") => boolean;
+  petPet: () => void;
+  sleepPet: () => void;
+  buyOutfit: (outfitId: string, cost: number) => boolean;
+  equipOutfit: (outfitId: string) => void;
+  tickPet: () => void;
   /** Полное применение снапшота из БД (per-TG-аккаунт). Не трогает tgId/name. */
   applyServerSnapshot: (data: Record<string, unknown>) => void;
   /** Сброс данных профиля (при смене TG-аккаунта). tgId/name сохраняет. */
@@ -116,6 +129,12 @@ export const useStore = create<AppState>()(
       muted: false,
       kbdHintShown: false,
       epoch: 0,
+      petHunger: 80,
+      petHappiness: 85,
+      petEnergy: 90,
+      petOutfit: "none",
+      ownedOutfits: ["none"],
+      lastTickTime: Date.now(),
       chatMessages: [
         {
           role: "assistant",
@@ -129,6 +148,64 @@ export const useStore = create<AppState>()(
       toggleMute: () => set((s) => ({ muted: !s.muted })),
       setKbdHintShown: () => set({ kbdHintShown: true }),
       setEpoch: (v) => set((s) => ({ epoch: Math.max(s.epoch, v) })),
+
+      feedPet: (foodType) => {
+        const s = get();
+        // Еда стоит XP или бесплатна если сытость < 90
+        const cost = foodType === "echpochmak" ? 25 : foodType === "chakchak" ? 15 : 10;
+        if (s.points < cost && s.petHunger > 70) return false;
+        if (cost > 0 && s.points >= cost) {
+          set({ points: s.points - cost });
+        }
+        const add = foodType === "echpochmak" ? 35 : foodType === "chakchak" ? 25 : 20;
+        set({
+          petHunger: Math.min(100, s.petHunger + add),
+          petHappiness: Math.min(100, s.petHappiness + 10),
+        });
+        return true;
+      },
+
+      petPet: () => set((s) => ({
+        petHappiness: Math.min(100, s.petHappiness + 12),
+        petEnergy: Math.max(0, s.petEnergy - 2),
+      })),
+
+      sleepPet: () => set((s) => ({
+        petEnergy: 100,
+        petHunger: Math.max(10, s.petHunger - 15),
+      })),
+
+      buyOutfit: (outfitId, cost) => {
+        const s = get();
+        if (s.ownedOutfits.includes(outfitId)) return false;
+        if (s.points < cost) return false;
+        set({
+          points: s.points - cost,
+          ownedOutfits: [...s.ownedOutfits, outfitId],
+          petOutfit: outfitId,
+        });
+        return true;
+      },
+
+      equipOutfit: (outfitId) => {
+        const s = get();
+        if (s.ownedOutfits.includes(outfitId)) {
+          set({ petOutfit: outfitId });
+        }
+      },
+
+      tickPet: () => set((s) => {
+        const now = Date.now();
+        const diffSec = (now - (s.lastTickTime || now)) / 1000;
+        if (diffSec < 60) return {}; // тик раз в минуту
+        const drop = Math.floor(diffSec / 60);
+        return {
+          petHunger: Math.max(0, s.petHunger - drop * 2),
+          petHappiness: Math.max(0, s.petHappiness - drop * 1),
+          petEnergy: Math.max(0, s.petEnergy - drop * 1),
+          lastTickTime: now,
+        };
+      }),
       setChatMessages: (msgs) => set((s) => ({
         chatMessages: typeof msgs === "function" ? msgs(s.chatMessages) : msgs,
       })),
@@ -258,6 +335,11 @@ export const useStore = create<AppState>()(
           muted: typeof data.muted === "boolean" ? data.muted : s.muted,
           kbdHintShown: data.kbdHintShown === true ? true : s.kbdHintShown,
           epoch: typeof data.epoch === "number" && data.epoch > s.epoch ? Math.floor(data.epoch) : s.epoch,
+          petHunger: num(data.petHunger, s.petHunger),
+          petHappiness: num(data.petHappiness, s.petHappiness),
+          petEnergy: num(data.petEnergy, s.petEnergy),
+          petOutfit: typeof data.petOutfit === "string" ? data.petOutfit : s.petOutfit,
+          ownedOutfits: strArray(data.ownedOutfits, 50).length ? strArray(data.ownedOutfits, 50) : s.ownedOutfits,
           chatMessages,
         };
       }),
@@ -276,6 +358,12 @@ export const useStore = create<AppState>()(
         userLevel: null,
         muted: false,
         kbdHintShown: false,
+        petHunger: 80,
+        petHappiness: 85,
+        petEnergy: 90,
+        petOutfit: "none",
+        ownedOutfits: ["none"],
+        lastTickTime: Date.now(),
         chatMessages: [GREETING],
         tgId: s.tgId,
         name: s.name,

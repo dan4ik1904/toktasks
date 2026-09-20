@@ -67,6 +67,12 @@ function buildSnapshot(): Record<string, unknown> {
     muted: s.muted,
     kbdHintShown: s.kbdHintShown,
     epoch: s.epoch,
+    petHunger: s.petHunger,
+    petHappiness: s.petHappiness,
+    petEnergy: s.petEnergy,
+    petOutfit: s.petOutfit,
+    ownedOutfits: s.ownedOutfits,
+    lastTickTime: s.lastTickTime,
     chatMessages: s.chatMessages.slice(-40),
     lang: useLang.getState().lang,
   };
@@ -104,7 +110,13 @@ export function SyncManager() {
   const booting = useRef(false);
   const identity = useRef<Identity>({ tgId: "demo", firstName: "", username: "", initData: undefined });
 
-  // Дебаунс сохранений при любых изменениях сторов
+  // Периодический тик тамагочи раз в минуту
+  useEffect(() => {
+    const interval = setInterval(() => {
+      useStore.getState().tickPet();
+    }, 60000);
+    return () => clearInterval(interval);
+  }, []);
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | null = null;
     const schedule = () => {
